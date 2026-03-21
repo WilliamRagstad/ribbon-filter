@@ -1,18 +1,13 @@
-<h1 align="center">ribbon-filter</h1>
 <div align="center">
-  <strong>
-    A static, space-efficient Ribbon filter crate for Rust
-  </strong>
+  <h1>🎗️ Ribbon Filter</h1>
   <h4>
-    <a href="#summary">Summary</a>
-    <span> | </span>
-    <a href="#install">Install</a>
-    <span> | </span>
+    A static, space-efficient Ribbon filter implementation for Rust
+    <br>
     <a href="#usage">Usage</a>
     <span> | </span>
-    <a href="#current-feature-status">Feature Status</a>
+    <a href="#current-feature-status">Features</a>
     <span> | </span>
-    <a href="#quality-and-testing">Quality</a>
+    <a href="#testing">Quality</a>
   </h4>
 </div>
 
