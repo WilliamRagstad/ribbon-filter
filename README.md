@@ -27,8 +27,7 @@
 
 ## Summary
 
-This crate implements a **static approximate-membership filter** based on Ribbon-style construction over GF(2).
-
+This crate implements a **static approximate-membership filter** based on Ribbon-style construction over $GF(2)$ / $\mathbb{F}_2$ using bit-packed matrices. It supports two modes of operation *(standard and homogeneous)*, configurable parameters for filter size, fingerprint bit-width, retry/growth policies, and more.
 The crate is designed around practical engineering constraints:
 
 - deterministic construction and query behavior for fixed inputs,
