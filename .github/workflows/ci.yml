@@ -42,3 +42,44 @@ jobs:
 
       - name: Run tests
         run: cargo test
+
+  fuzz:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_FUZZ_VERSION: 0.12.0
+      FUZZ_TIME: 60
+    strategy:
+      matrix:
+        include:
+          - fuzz_target: build_query
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nightly Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache cargo-fuzz binary
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/cargo-fuzz
+          key: cargo-fuzz-bin-${{ env.CARGO_FUZZ_VERSION }}
+
+      - name: Add cargo-fuzz bin path
+        run: echo "${{ runner.tool_cache }}/cargo-fuzz/bin" >> $GITHUB_PATH
+
+      - name: Install cargo-fuzz
+        run: cargo install --root "${{ runner.tool_cache }}/cargo-fuzz" --version ${{ env.CARGO_FUZZ_VERSION }} cargo-fuzz --locked
+
+      - name: Build fuzz target
+        run: cargo fuzz build ${{ matrix.fuzz_target }}
+
+      - name: Run fuzz smoke test
+        run: cargo fuzz run ${{ matrix.fuzz_target }} -- -max_total_time=${{ env.FUZZ_TIME }}
+
+      - name: Upload fuzz artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzzing-artifacts-${{ matrix.fuzz_target }}-${{ github.sha }}
+          path: fuzz/artifacts
