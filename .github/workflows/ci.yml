@@ -6,6 +6,20 @@ on:
   pull_request:
 
 jobs:
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MSRV Rust (1.86)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.86.0
+
+      - name: Build with MSRV
+        run: cargo check
+
   quality:
     runs-on: ubuntu-latest
     steps:

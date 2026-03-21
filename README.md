@@ -156,6 +156,12 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --document-private-items
 cargo test
 ```
 
+## Toolchain and Platforms
+
+- MSRV: Rust `1.86.0`
+- Stable: latest stable Rust
+- Platform matrix policy: see `docs/platforms.md`
+
 ## Benchmarks
 
 Run reproducible baseline benchmarks:
