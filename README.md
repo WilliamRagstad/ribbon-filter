@@ -161,6 +161,7 @@ cargo test
 - MSRV: Rust `1.86.0`
 - Stable: latest stable Rust
 - Platform matrix policy: see `docs/platforms.md`
+- Release process: see `docs/release-process.md`
 
 ## Benchmarks
 
