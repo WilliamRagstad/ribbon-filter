@@ -36,6 +36,7 @@ The crate is designed around practical engineering constraints:
 - robust construction with retry and growth policy controls.
 
 This crate targets workloads where keys are known up front and then queried many times.
+Paper: [Ribbon filter: Practically Smaller Than Xor](https://arxiv.org/pdf/2103.02515.pdf) *by Peter C. Dillinger and Stefan Walzer*.
 
 ## Usage
 
