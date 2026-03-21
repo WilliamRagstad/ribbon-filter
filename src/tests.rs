@@ -583,3 +583,95 @@ fn statistical_false_positive_rates_are_within_confidence_bounds() {
         }
     }
 }
+
+fn lcg_next(state: &mut u64) -> u64 {
+    *state = state
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    *state
+}
+
+#[test]
+fn property_no_false_negatives_across_generated_cases() {
+    let hasher = DefaultBuildHasher::default();
+    let mut rng = 1u64;
+
+    for case in 0..20u64 {
+        let seed = lcg_next(&mut rng);
+        let n = 200 + (lcg_next(&mut rng) % 400) as usize;
+        let w_choices = [16usize, 32usize, 80usize, 128usize];
+        let w = w_choices[(lcg_next(&mut rng) as usize) % w_choices.len()];
+        let r_choices = [8usize, 10usize, 12usize];
+        let r = r_choices[(lcg_next(&mut rng) as usize) % r_choices.len()];
+        let mode = if (lcg_next(&mut rng) & 1) == 0 {
+            Mode::Standard
+        } else {
+            Mode::Homogeneous
+        };
+
+        let params = Params::new((n * 5).max(w), w, r, mode)
+            .expect("params should be valid")
+            .with_seed(seed)
+            .with_retry_policy(4, 2)
+            .expect("retry policy should be valid");
+        let builder = RibbonBuilder::new(params, hasher.clone()).expect("builder should be valid");
+        let keys: Vec<u64> = (0..n as u64)
+            .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15).wrapping_add(seed))
+            .collect();
+        let filter = builder
+            .build(&keys)
+            .expect("construction should succeed for generated case");
+        let mut scratch = filter.new_scratch();
+
+        for key in &keys {
+            assert!(
+                filter.contains_in(key, &mut scratch),
+                "false negative for case={case}, mode={mode}, w={w}, r={r}, seed={seed}, key={key}"
+            );
+        }
+    }
+}
+
+#[test]
+fn property_determinism_across_generated_cases() {
+    let hasher = DefaultBuildHasher::default();
+    let mut rng = 99u64;
+
+    for case in 0..16u64 {
+        let seed = lcg_next(&mut rng);
+        let n = 180 + (lcg_next(&mut rng) % 320) as usize;
+        let w_choices = [16usize, 64usize, 96usize];
+        let w = w_choices[(lcg_next(&mut rng) as usize) % w_choices.len()];
+        let r = if (lcg_next(&mut rng) & 1) == 0 { 8 } else { 12 };
+        let mode = if (lcg_next(&mut rng) & 1) == 0 {
+            Mode::Standard
+        } else {
+            Mode::Homogeneous
+        };
+
+        let params = Params::new((n * 5).max(w), w, r, mode)
+            .expect("params should be valid")
+            .with_seed(seed)
+            .with_retry_policy(4, 2)
+            .expect("retry policy should be valid");
+        let keys: Vec<u64> = (0..n as u64)
+            .map(|i| i.wrapping_mul(0xD6E8_FEB8_6659_FD93).wrapping_add(seed))
+            .collect();
+
+        let builder_a = RibbonBuilder::new(params, hasher.clone()).expect("builder a valid");
+        let builder_b = RibbonBuilder::new(params, hasher.clone()).expect("builder b valid");
+        let filter_a = builder_a.build(&keys).expect("build a should succeed");
+        let filter_b = builder_b.build(&keys).expect("build b should succeed");
+
+        let mut scratch_a = filter_a.new_scratch();
+        let mut scratch_b = filter_b.new_scratch();
+        for probe in 0..(n as u64 + 128) {
+            let q = probe.wrapping_mul(0x94D0_49BB_1331_11EB).wrapping_add(seed);
+            assert_eq!(
+                filter_a.contains_in(&q, &mut scratch_a),
+                filter_b.contains_in(&q, &mut scratch_b),
+                "determinism mismatch case={case}, mode={mode}, w={w}, r={r}, seed={seed}, q={q}"
+            );
+        }
+    }
+}
