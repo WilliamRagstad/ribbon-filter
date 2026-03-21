@@ -11,7 +11,7 @@ This project uses a lightweight `0.1.0-rc` to `0.1.0` path.
    - `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --document-private-items`
    - `cargo test`
 3. Run benchmark command and compare against baseline:
-   - `cargo run --release --bin ribbon-bench`
+   - `cargo bench --bench ribbon`
 4. Confirm no unresolved public API TODO markers in docs.
 5. Publish `0.1.0-rc.1` and collect feedback.
 6. If no blockers, update changelog and publish `0.1.0`.

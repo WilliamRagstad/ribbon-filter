@@ -1,3 +1,5 @@
+#![allow(clippy::print_stdout)]
+
 use std::collections::hash_map::DefaultHasher;
 use std::hash::BuildHasherDefault;
 use std::time::Instant;

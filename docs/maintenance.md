@@ -5,13 +5,13 @@
 - Keep CI green on stable and MSRV.
 - Review failed fuzz runs and triage crashes.
 - Run benchmark baseline command periodically:
-  - `cargo run --release --bin ribbon-bench`
+  - `cargo bench --bench ribbon`
 
 ## Performance regression policy
 
 When a regression is reported:
 
-1. Reproduce with `ribbon-bench` and same params/seed.
+1. Reproduce with `cargo bench --bench ribbon` and same params/seed.
 2. Compare against `regression/benchmarks.md` and prior commit output.
 3. If query/build regression exceeds 10% in repeated runs, open a perf issue.
 4. Land either a fix or an explicit acceptance note in changelog.

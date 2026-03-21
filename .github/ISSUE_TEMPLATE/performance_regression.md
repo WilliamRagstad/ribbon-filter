@@ -15,7 +15,7 @@ What regressed (build throughput, query throughput, bits/key, etc.).
 Command(s) used:
 
 ```sh
-cargo run --release --bin ribbon-bench
+cargo bench --bench ribbon
 ```
 
 Include machine details and rust toolchain.

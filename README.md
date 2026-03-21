@@ -169,7 +169,7 @@ cargo test
 Run reproducible baseline benchmarks:
 
 ```sh
-cargo run --release --bin ribbon-bench
+cargo bench --bench ribbon
 ```
 
 Committed baseline numbers are in `regression/benchmarks.md`.

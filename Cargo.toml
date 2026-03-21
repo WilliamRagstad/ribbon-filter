@@ -9,9 +9,10 @@ keywords = ["filter", "membership", "probabilistic", "ribbon"]
 categories = ["algorithms", "data-structures"]
 rust-version = "1.86"
 
-[[bin]]
-name = "ribbon-bench"
-path = "tools/bin/ribbon_bench.rs"
+[[bench]]
+name = "ribbon"
+harness = false
+path = "benches/ribbon.rs"
 
 [dependencies]
 bitvec = "1"
