@@ -7,7 +7,7 @@
     <span> | </span>
     <a href="#current-feature-status">Features</a>
     <span> | </span>
-    <a href="#testing">Quality</a>
+    <a href="#testing">Development</a>
   </h4>
 </div>
 
@@ -130,7 +130,9 @@ Helper constructors:
 
 &nbsp;
 
-## Testing
+## Development
+
+### Testing
 
 This repository includes: unit and integration-style behavior tests, statistical false-positive guardrails, generated invariant and determinism test cases, adversarial pattern regression coverage, CI checks for formatting, linting, docs, and tests.
 Run all checks locally:
@@ -142,7 +144,7 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --document-private-items
 cargo test
 ```
 
-## Benchmarks
+### Benchmarks
 
 Run reproducible baseline benchmarks:
 
@@ -152,7 +154,7 @@ cargo bench --bench ribbon
 
 Committed baseline numbers are in `benches/benchmarks.md`.
 
-## Fuzzing
+### Fuzzing
 
 Fuzz harnesses are under `fuzz/`.
 Run the primary target:
