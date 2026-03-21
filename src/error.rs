@@ -27,15 +27,16 @@ impl std::error::Error for ParamError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstructionFailure {
-    Unimplemented,
+    InconsistentEquation { key_index: usize, row_index: usize },
 }
 
 impl fmt::Display for ConstructionFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConstructionFailure::Unimplemented => {
-                write!(f, "construction failure details not implemented yet")
-            }
+            ConstructionFailure::InconsistentEquation { key_index, row_index } => write!(
+                f,
+                "inconsistent equation while inserting key at index {key_index} near row {row_index}"
+            ),
         }
     }
 }

@@ -9,6 +9,22 @@ pub(crate) struct StandardEquation {
     pub(crate) coeff: u64,
 }
 
+#[inline]
+pub(crate) fn xor_words(dst: &mut [u64], rhs: &[u64]) {
+    for (d, r) in dst.iter_mut().zip(rhs.iter()) {
+        *d ^= *r;
+    }
+}
+
+#[inline]
+pub(crate) fn for_each_set_bit_u64(mut mask: u64, mut f: impl FnMut(usize)) {
+    while mask != 0 {
+        let bit = mask.trailing_zeros() as usize;
+        f(bit);
+        mask &= mask - 1;
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 struct SplitMix64 {
     state: u64,
