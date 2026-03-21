@@ -86,17 +86,11 @@ This crate is a Rust implementation of a Ribbon filter builder/query pipeline wi
 
 It is **not** a dynamic insert/delete structure and it is **not** a general-purpose probabilistic collection API yet.
 
-### Guarantees
-
-- Build success implies **no false negatives** for inserted keys.
-- Query behavior is deterministic for fixed hasher + params + key-set.
-- Construction failures are surfaced with structured diagnostics.
-
-### Limits
-
-- Static structure: no online insert/delete API.
-- Current width support is capped at `128`.
-- Public API and internals are still evolving toward release-hardening milestones.
+| Guarantees | Limits |
+|---|---|
+| Build success implies **no false negatives** for inserted keys. | Static structure: no online insert/delete API. |
+| Query behavior is deterministic for fixed hasher + params + key-set. | Current width support is capped at `128`. |
+| Construction failures are surfaced with structured diagnostics. | Public API and internals are still evolving toward release-hardening milestones. |
 
 ## Parameter Guide
 
