@@ -170,9 +170,3 @@ cargo +nightly fuzz run build_query -- -max_total_time=60
 ```
 
 The `build_query` harness stresses parameter decoding, construction paths, and query calls across edge-shaped inputs.
-
-### Platform notes
-
-- `cargo-fuzz` uses libFuzzer/sanitizer toolchains and may require additional platform-specific runtime/compiler components.
-- On Windows/MSVC, sanitizer-linked fuzz binaries can fail to start if sanitizer runtime DLLs are unavailable.
-- If this happens, run fuzzing in a Linux environment (native Linux, WSL, or CI container with clang/libfuzzer toolchain).
