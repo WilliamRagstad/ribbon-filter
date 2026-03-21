@@ -675,3 +675,51 @@ fn property_determinism_across_generated_cases() {
         }
     }
 }
+
+fn adversarial_patterns(n: usize) -> Vec<(&'static str, Vec<u64>)> {
+    let ordered: Vec<u64> = (0..n as u64).collect();
+    let constant_low_bits: Vec<u64> = (0..n as u64).map(|i| (i << 16) | 0xFFFF).collect();
+    let stride_1024: Vec<u64> = (0..n as u64).map(|i| i * 1024).collect();
+    let gray_code: Vec<u64> = (0..n as u64).map(|i| i ^ (i >> 1)).collect();
+    let mul_mix_a: Vec<u64> = (0..n as u64)
+        .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15))
+        .collect();
+    let mul_mix_b: Vec<u64> = (0..n as u64)
+        .map(|i| i.wrapping_mul(0xD6E8_FEB8_6659_FD93))
+        .collect();
+
+    vec![
+        ("ordered_u64", ordered),
+        ("constant_low_bits", constant_low_bits),
+        ("stride_1024", stride_1024),
+        ("gray_code", gray_code),
+        ("mul_mix_a", mul_mix_a),
+        ("mul_mix_b", mul_mix_b),
+    ]
+}
+
+#[test]
+fn adversarial_regression_corpus_has_no_false_negatives() {
+    let hasher = DefaultBuildHasher::default();
+    let n = 2000usize;
+
+    for (name, keys) in adversarial_patterns(n) {
+        let params = Params::new(8000, 16, 10, Mode::Standard)
+            .expect("params should be valid")
+            .with_seed(404)
+            .with_retry_policy(6, 2)
+            .expect("retry policy should be valid");
+        let builder = RibbonBuilder::new(params, hasher.clone()).expect("builder should be valid");
+        let filter = builder
+            .build(&keys)
+            .expect("construction should succeed for adversarial set");
+        let mut scratch = filter.new_scratch();
+
+        for key in &keys {
+            assert!(
+                filter.contains_in(key, &mut scratch),
+                "false negative in adversarial set '{name}' for key {key}"
+            );
+        }
+    }
+}

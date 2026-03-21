@@ -1,0 +1,6 @@
+ordered_u64: 0..1999
+constant_low_bits: ((i << 16) | 0xFFFF) for i in 0..1999
+stride_1024: i * 1024 for i in 0..1999
+gray_code: i ^ (i >> 1) for i in 0..1999
+mul_mix_a: i * 0x9E3779B97F4A7C15 for i in 0..1999
+mul_mix_b: i * 0xD6E8FEB86659FD93 for i in 0..1999
