@@ -8,11 +8,17 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
-libfuzzer-sys = "0.4"
+libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 ribbon-filter = { path = ".." }
 
 [[bin]]
 name = "build_query"
 path = "fuzz_targets/build_query.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "build_query_structured"
+path = "fuzz_targets/build_query_structured.rs"
 test = false
 doc = false
