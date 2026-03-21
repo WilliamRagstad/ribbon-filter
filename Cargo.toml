@@ -14,7 +14,6 @@ keywords = [
     "probabilistic",
 ]
 categories = ["algorithms", "data-structures"]
-rust-version = "1.86"
 authors = ["William Rågstad"]
 
 [[bench]]
