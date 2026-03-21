@@ -172,7 +172,7 @@ Run reproducible baseline benchmarks:
 cargo bench --bench ribbon
 ```
 
-Committed baseline numbers are in `regression/benchmarks.md`.
+Committed baseline numbers are in `benches/benchmarks.md`.
 
 ## Fuzzing
 

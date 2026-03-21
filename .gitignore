@@ -1,3 +1,4 @@
 /target
 sprints.md
 /fuzz/target
+/fuzz/artifacts
