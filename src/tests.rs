@@ -98,7 +98,7 @@ fn hash_pipeline_start_in_range_and_pivot_forced() {
     );
 
     assert!(eq.start < params.start_range());
-    assert_eq!(eq.coeff & 1, 1);
+    assert_eq!(eq.coeff_lo & 1, 1);
 }
 
 #[test]
@@ -425,4 +425,53 @@ fn homogeneous_pipeline_has_zero_fingerprint() {
     );
 
     assert!(fp.iter().all(|&w| w == 0));
+}
+
+#[test]
+fn width_128_pipeline_sets_bits_in_both_halves() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(400, 128, 8, Mode::Standard).expect("params valid");
+
+    let mut saw_hi = false;
+    for seed in 0..500u64 {
+        let mut fp = vec![0u64; params.fingerprint_words()];
+        let eq = standard_equation_w64(
+            &hasher,
+            &"w128-key",
+            seed,
+            params.m,
+            params.w,
+            Mode::Standard,
+            &mut fp,
+            params.fingerprint_last_word_mask(),
+        );
+
+        if eq.coeff_hi != 0 {
+            saw_hi = true;
+            break;
+        }
+    }
+
+    assert!(
+        saw_hi,
+        "expected at least one seed with high-half coefficient bits"
+    );
+}
+
+#[test]
+fn builder_supports_width_above_64() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(4000, 96, 10, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(303)
+        .with_retry_policy(4, 1)
+        .expect("retry policy valid");
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should build");
+    let keys: Vec<u64> = (0..800).collect();
+    let filter = builder.build(&keys).expect("construction should succeed");
+    let mut scratch = filter.new_scratch();
+
+    for key in &keys {
+        assert!(filter.contains_in(key, &mut scratch));
+    }
 }

@@ -1,7 +1,7 @@
 use std::hash::{BuildHasher, Hash};
 
 use crate::builder::Scratch;
-use crate::hashing::{for_each_set_bit_u64, standard_equation_w64, xor_words};
+use crate::hashing::{for_each_set_bit_u128_parts, standard_equation_w64, xor_words};
 use crate::params::Params;
 
 #[derive(Debug, Clone)]
@@ -55,7 +55,7 @@ where
             self.params.fingerprint_last_word_mask(),
         );
 
-        for_each_set_bit_u64(equation.coeff, |offset| {
+        for_each_set_bit_u128_parts(equation.coeff_lo, equation.coeff_hi, |offset| {
             let row = self.z_row(equation.start + offset);
             xor_words(&mut scratch.acc, row);
         });

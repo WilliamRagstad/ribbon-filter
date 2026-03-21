@@ -29,6 +29,8 @@ pub struct Params {
 }
 
 impl Params {
+    pub const MAX_W: usize = 128;
+
     pub fn new(m: usize, w: usize, r: usize, mode: Mode) -> Result<Self, ParamError> {
         let params = Self {
             m,
@@ -97,6 +99,12 @@ impl Params {
         }
         if self.w == 0 {
             return Err(ParamError::ZeroWidth);
+        }
+        if self.w > Self::MAX_W {
+            return Err(ParamError::WidthTooLarge {
+                w: self.w,
+                max: Self::MAX_W,
+            });
         }
         if self.r == 0 {
             return Err(ParamError::ZeroFingerprintBits);

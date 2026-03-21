@@ -8,7 +8,8 @@ const MIX_CONST: u64 = 0x9E37_79B9_7F4A_7C15;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct StandardEquation {
     pub(crate) start: usize,
-    pub(crate) coeff: u64,
+    pub(crate) coeff_lo: u64,
+    pub(crate) coeff_hi: u64,
 }
 
 #[inline]
@@ -19,11 +20,16 @@ pub(crate) fn xor_words(dst: &mut [u64], rhs: &[u64]) {
 }
 
 #[inline]
-pub(crate) fn for_each_set_bit_u64(mut mask: u64, mut f: impl FnMut(usize)) {
-    while mask != 0 {
-        let bit = mask.trailing_zeros() as usize;
+pub(crate) fn for_each_set_bit_u128_parts(mut lo: u64, mut hi: u64, mut f: impl FnMut(usize)) {
+    while lo != 0 {
+        let bit = lo.trailing_zeros() as usize;
         f(bit);
-        mask &= mask - 1;
+        lo &= lo - 1;
+    }
+    while hi != 0 {
+        let bit = hi.trailing_zeros() as usize;
+        f(64 + bit);
+        hi &= hi - 1;
     }
 }
 
@@ -77,8 +83,19 @@ pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
 
     let start = fastrange_u64(stream.next_u64(), m - w + 1);
 
-    let width_mask = if w == 64 { u64::MAX } else { (1u64 << w) - 1 };
-    let coeff = (stream.next_u64() & width_mask) | 1;
+    let (coeff_lo, coeff_hi) = if w <= 64 {
+        let width_mask = if w == 64 { u64::MAX } else { (1u64 << w) - 1 };
+        ((stream.next_u64() & width_mask) | 1, 0)
+    } else {
+        let lo = stream.next_u64();
+        let hi_bits = w - 64;
+        let hi_mask = if hi_bits == 64 {
+            u64::MAX
+        } else {
+            (1u64 << hi_bits) - 1
+        };
+        (lo | 1, stream.next_u64() & hi_mask)
+    };
 
     if matches!(mode, Mode::Homogeneous) {
         fingerprint.fill(0);
@@ -91,5 +108,9 @@ pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
         }
     }
 
-    StandardEquation { start, coeff }
+    StandardEquation {
+        start,
+        coeff_lo,
+        coeff_hi,
+    }
 }

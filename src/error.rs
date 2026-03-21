@@ -5,6 +5,7 @@ pub enum ParamError {
     ZeroM,
     ZeroN,
     ZeroWidth,
+    WidthTooLarge { w: usize, max: usize },
     ZeroFingerprintBits,
     WidthExceedsM { m: usize, w: usize },
     ZeroRetryLimit,
@@ -18,6 +19,9 @@ impl fmt::Display for ParamError {
             ParamError::ZeroM => write!(f, "m must be greater than zero"),
             ParamError::ZeroN => write!(f, "n must be greater than zero"),
             ParamError::ZeroWidth => write!(f, "w must be greater than zero"),
+            ParamError::WidthTooLarge { w, max } => {
+                write!(f, "w ({w}) must be less than or equal to {max}")
+            }
             ParamError::ZeroFingerprintBits => write!(f, "r must be greater than zero"),
             ParamError::WidthExceedsM { m, w } => {
                 write!(f, "w ({w}) must be less than or equal to m ({m})")
