@@ -154,7 +154,10 @@ Fuzz harnesses are under `fuzz/`.
 Run the primary target:
 
 ```sh
-cargo fuzz run build_query -- -max_total_time=60
+rustup toolchain install nightly
+cargo +nightly install cargo-fuzz
+cargo +nightly fuzz list # target discovery
+cargo +nightly fuzz run build_query -- -max_total_time=60
 ```
 
 The `build_query` harness stresses parameter decoding, construction paths, and query calls across edge-shaped inputs.
