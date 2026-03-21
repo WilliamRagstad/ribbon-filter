@@ -51,11 +51,23 @@ impl Params {
     }
 
     pub fn validate(&self) -> Result<(), ParamError> {
-        if self.m == 0 || self.w == 0 || self.r == 0 || self.retry_limit == 0 {
-            return Err(ParamError::Unimplemented);
+        if self.m == 0 {
+            return Err(ParamError::ZeroM);
+        }
+        if self.w == 0 {
+            return Err(ParamError::ZeroWidth);
+        }
+        if self.r == 0 {
+            return Err(ParamError::ZeroFingerprintBits);
+        }
+        if self.retry_limit == 0 {
+            return Err(ParamError::ZeroRetryLimit);
         }
         if self.w > self.m {
-            return Err(ParamError::Unimplemented);
+            return Err(ParamError::WidthExceedsM {
+                m: self.m,
+                w: self.w,
+            });
         }
         Ok(())
     }
