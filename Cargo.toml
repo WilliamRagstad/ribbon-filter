@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 bitvec = "1"
+
+[dev-dependencies]
+libfuzzer-sys = "0.4"

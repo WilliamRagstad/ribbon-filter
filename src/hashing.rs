@@ -1,4 +1,4 @@
-use core::hash::{Hash, Hasher};
+use core::hash::Hash;
 use std::hash::BuildHasher;
 
 use crate::params::Mode;
