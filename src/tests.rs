@@ -491,3 +491,35 @@ fn bitpacked_storage_maintains_membership_behavior() {
         assert!(filter.contains_in(key, &mut scratch));
     }
 }
+
+#[test]
+fn compatibility_matrix_modes_widths_and_fingerprints() {
+    let hasher = DefaultBuildHasher::default();
+    let modes = [Mode::Standard, Mode::Homogeneous];
+    let widths = [16usize, 80usize, 128usize];
+    let rs = [8usize, 12usize];
+
+    for mode in modes {
+        for w in widths {
+            for r in rs {
+                let params = Params::new(6000, w, r, mode)
+                    .expect("params should be valid")
+                    .with_seed(700 + w as u64 + r as u64)
+                    .with_retry_policy(5, 2)
+                    .expect("retry policy valid");
+                let builder =
+                    RibbonBuilder::new(params, hasher.clone()).expect("builder should build");
+                let keys: Vec<u64> = (0..1000).collect();
+                let filter = builder.build(&keys).expect("construction should succeed");
+                let mut scratch = filter.new_scratch();
+
+                for key in &keys {
+                    assert!(
+                        filter.contains_in(key, &mut scratch),
+                        "false negative for mode={mode}, w={w}, r={r}, key={key}"
+                    );
+                }
+            }
+        }
+    }
+}
