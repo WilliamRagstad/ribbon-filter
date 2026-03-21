@@ -3,7 +3,7 @@ use std::hash::BuildHasher;
 use crate::error::{BuildError, ConstructionFailure};
 use crate::filter::RibbonFilter;
 use crate::hashing::{
-    derive_attempt_seed, for_each_set_bit_u128_parts, standard_equation_w64, xor_words,
+    derive_attempt_seed, for_each_set_bit_u128_parts, standard_equation_w64, xor_words, SplitMix64,
 };
 use crate::params::{Mode, Params};
 
@@ -172,6 +172,22 @@ where
         }
 
         let mut z = vec![0u64; m * stride_words];
+        if matches!(self.params.mode, Mode::Homogeneous) {
+            let mut rng = SplitMix64::new(seed ^ 0xD1B5_4A32_D192_ED03);
+            for i in 0..m {
+                if occupied[i] {
+                    continue;
+                }
+
+                let row_start = i * stride_words;
+                let row_end = row_start + stride_words;
+                for word in &mut z[row_start..row_end] {
+                    *word = rng.next_u64();
+                }
+                z[row_end - 1] &= fp_last_mask;
+            }
+        }
+
         for i in (0..m).rev() {
             if !occupied[i] {
                 continue;

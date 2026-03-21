@@ -372,6 +372,43 @@ fn homogeneous_build_succeeds_and_has_no_false_negatives() {
 }
 
 #[test]
+fn homogeneous_mode_has_reasonable_false_positive_rate() {
+    let hasher = DefaultBuildHasher::default();
+    let r = 10usize;
+    let n = 4000usize;
+    let params = Params::new(n * 4, 16, r, Mode::Homogeneous)
+        .expect("params valid")
+        .with_seed(5050)
+        .with_retry_policy(2, 0)
+        .expect("retry policy valid");
+    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
+    let keys: Vec<u64> = (0..n as u64).collect();
+    let filter = builder
+        .build(&keys)
+        .expect("homogeneous build should succeed");
+
+    let queries = 50_000usize;
+    let mut scratch = filter.new_scratch();
+    let mut fp = 0usize;
+    for q in 0..queries {
+        if filter.contains_in(&(10_000_000u64 + q as u64), &mut scratch) {
+            fp += 1;
+        }
+    }
+
+    let observed = fp as f64 / queries as f64;
+    let expected = 2f64.powi(-(r as i32));
+    assert!(
+        observed < 0.05,
+        "homogeneous fp rate too high: observed={observed}, expected~{expected}"
+    );
+    assert!(
+        observed <= expected * 8.0,
+        "homogeneous fp rate unexpectedly far from expected: observed={observed}, expected~{expected}"
+    );
+}
+
+#[test]
 fn homogeneous_pipeline_has_zero_fingerprint() {
     let hasher = DefaultBuildHasher::default();
     let params = Params::new(128, 16, 9, Mode::Homogeneous).expect("params must be valid");
