@@ -50,6 +50,7 @@ where
             self.params.seed,
             self.params.m,
             self.params.w,
+            self.params.mode,
             &mut scratch.fingerprint,
             self.params.fingerprint_last_word_mask(),
         );

@@ -5,12 +5,14 @@ use crate::error::ParamError;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Standard,
+    Homogeneous,
 }
 
 impl fmt::Display for Mode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Mode::Standard => write!(f, "standard"),
+            Mode::Homogeneous => write!(f, "homogeneous"),
         }
     }
 }

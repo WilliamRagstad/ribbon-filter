@@ -92,6 +92,7 @@ fn hash_pipeline_start_in_range_and_pivot_forced() {
         42,
         params.m,
         params.w,
+        Mode::Standard,
         &mut fp,
         params.fingerprint_last_word_mask(),
     );
@@ -112,6 +113,7 @@ fn hash_pipeline_masks_fingerprint_to_r_bits() {
         7,
         params.m,
         params.w,
+        Mode::Standard,
         &mut fp,
         params.fingerprint_last_word_mask(),
     );
@@ -132,6 +134,7 @@ fn hash_pipeline_is_deterministic_for_seed_and_key() {
         999,
         params.m,
         params.w,
+        Mode::Standard,
         &mut fp_a,
         params.fingerprint_last_word_mask(),
     );
@@ -141,6 +144,7 @@ fn hash_pipeline_is_deterministic_for_seed_and_key() {
         999,
         params.m,
         params.w,
+        Mode::Standard,
         &mut fp_b,
         params.fingerprint_last_word_mask(),
     );
@@ -383,4 +387,42 @@ fn successful_build_persists_selected_attempt_seed() {
         filter.params().seed,
         crate::hashing::derive_attempt_seed(base_seed, 0)
     );
+}
+
+#[test]
+fn homogeneous_build_succeeds_and_has_no_false_negatives() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(4000, 16, 8, Mode::Homogeneous)
+        .expect("params valid")
+        .with_seed(55);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
+    let keys: Vec<u64> = (0..1000).collect();
+
+    let filter = builder
+        .build(&keys)
+        .expect("homogeneous build should succeed");
+    let mut scratch = filter.new_scratch();
+    for key in &keys {
+        assert!(filter.contains_in(key, &mut scratch));
+    }
+}
+
+#[test]
+fn homogeneous_pipeline_has_zero_fingerprint() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(128, 16, 9, Mode::Homogeneous).expect("params must be valid");
+    let mut fp = vec![0u64; params.fingerprint_words()];
+
+    let _ = standard_equation_w64(
+        &hasher,
+        &"h-key",
+        11,
+        params.m,
+        params.w,
+        Mode::Homogeneous,
+        &mut fp,
+        params.fingerprint_last_word_mask(),
+    );
+
+    assert!(fp.iter().all(|&w| w == 0));
 }

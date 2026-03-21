@@ -3,7 +3,7 @@ use std::hash::BuildHasher;
 use crate::error::{BuildError, ConstructionFailure};
 use crate::filter::RibbonFilter;
 use crate::hashing::{derive_attempt_seed, for_each_set_bit_u64, standard_equation_w64, xor_words};
-use crate::params::Params;
+use crate::params::{Mode, Params};
 
 #[derive(Debug, Clone)]
 pub struct Scratch {
@@ -68,6 +68,14 @@ where
                     Ok(filter) => return Ok(filter),
                     Err(err) => last_failure = Some(err),
                 }
+
+                if matches!(self.params.mode, Mode::Homogeneous) {
+                    break;
+                }
+            }
+
+            if matches!(self.params.mode, Mode::Homogeneous) {
+                break;
             }
 
             if grow_step < self.params.grow_limit {
@@ -112,6 +120,7 @@ where
                 seed,
                 m,
                 self.params.w,
+                self.params.mode,
                 &mut key_fp,
                 fp_last_mask,
             );

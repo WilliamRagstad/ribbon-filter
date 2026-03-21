@@ -2,10 +2,12 @@
 
 //! Ribbon filter crate (incremental sprint implementation).
 //!
-//! Guarantees in current mode (`Mode::Standard`, `w <= 64`):
+//! Guarantees in current modes (`w <= 64` currently):
 //! - no false negatives for inserted keys after successful build,
 //! - probabilistic false positives controlled by `r` fingerprint bits,
 //! - deterministic behavior for fixed params, key-set, and hasher.
+//!
+//! `Mode::Homogeneous` is also available and uses zero right-hand-side equations.
 //!
 //! # Example
 //! ```
