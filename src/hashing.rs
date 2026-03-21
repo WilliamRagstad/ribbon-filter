@@ -52,12 +52,6 @@ impl SplitMix64 {
     }
 }
 
-fn hash64<S: BuildHasher, Q: Hash + ?Sized>(build_hasher: &S, key: &Q) -> u64 {
-    let mut hasher = build_hasher.build_hasher();
-    key.hash(&mut hasher);
-    hasher.finish()
-}
-
 fn fastrange_u64(x: u64, range: usize) -> usize {
     ((x as u128 * range as u128) >> 64) as usize
 }
@@ -85,7 +79,7 @@ pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
     fingerprint: &mut [u64],
     last_word_mask: u64,
 ) -> StandardEquation {
-    let base_hash = hash64(build_hasher, key);
+    let base_hash = build_hasher.hash_one(key);
     let stream_seed = (base_hash ^ seed).wrapping_mul(MIX_CONST);
     let mut stream = SplitMix64::new(stream_seed);
 
