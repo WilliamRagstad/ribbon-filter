@@ -409,6 +409,19 @@ fn homogeneous_mode_has_reasonable_false_positive_rate() {
 }
 
 #[test]
+fn construction_failure_out_of_bounds_display_contains_context() {
+    let err = crate::ConstructionFailure::OutOfBounds {
+        key_index: Some(12),
+        row_index: 99,
+        m: 80,
+    };
+    let msg = err.to_string();
+    assert!(msg.contains("row index 99"));
+    assert!(msg.contains("m=80"));
+    assert!(msg.contains("key at index 12"));
+}
+
+#[test]
 fn homogeneous_pipeline_has_zero_fingerprint() {
     let hasher = DefaultBuildHasher::default();
     let params = Params::new(128, 16, 9, Mode::Homogeneous).expect("params must be valid");

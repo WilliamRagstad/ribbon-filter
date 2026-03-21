@@ -129,7 +129,13 @@ where
             let mut c_hi = equation.coeff_hi;
             let mut b = key_fp.clone();
 
-            debug_assert!(i < m);
+            if i >= m {
+                return Err(ConstructionFailure::OutOfBounds {
+                    key_index: Some(key_index),
+                    row_index: i,
+                    m,
+                });
+            }
 
             loop {
                 if !occupied[i] {
@@ -160,7 +166,13 @@ where
                     64 + c_hi.trailing_zeros() as usize
                 };
                 i += shift;
-                debug_assert!(i < m);
+                if i >= m {
+                    return Err(ConstructionFailure::OutOfBounds {
+                        key_index: Some(key_index),
+                        row_index: i,
+                        m,
+                    });
+                }
                 if shift >= 64 {
                     c_lo = c_hi >> (shift - 64);
                     c_hi = 0;
@@ -200,14 +212,26 @@ where
 
             let upper_lo = coeff_lo[i] & !1u64;
             let upper_hi = coeff_hi[i];
+            let mut row_offsets = Vec::with_capacity(self.params.w.saturating_sub(1));
             for_each_set_bit_u128_parts(upper_lo, upper_hi, |offset| {
-                let other_start = (i + offset) * stride_words;
-                let other_end = other_start + stride_words;
-                debug_assert!(i + offset < m);
-                let mut row_copy = vec![0u64; stride_words];
-                row_copy.copy_from_slice(&z[other_start..other_end]);
-                xor_words(&mut z[row_start..row_end], &row_copy);
+                row_offsets.push(offset);
             });
+
+            for offset in row_offsets {
+                let row_index = i + offset;
+                if row_index >= m {
+                    return Err(ConstructionFailure::OutOfBounds {
+                        key_index: None,
+                        row_index,
+                        m,
+                    });
+                }
+                let other_start = row_index * stride_words;
+                let (left, right) = z.split_at_mut(other_start);
+                let row = &mut left[row_start..row_end];
+                let other = &right[..stride_words];
+                xor_words(row, other);
+            }
 
             z[row_end - 1] &= fp_last_mask;
         }

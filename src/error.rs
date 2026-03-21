@@ -41,7 +41,15 @@ impl std::error::Error for ParamError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstructionFailure {
-    InconsistentEquation { key_index: usize, row_index: usize },
+    InconsistentEquation {
+        key_index: usize,
+        row_index: usize,
+    },
+    OutOfBounds {
+        key_index: Option<usize>,
+        row_index: usize,
+        m: usize,
+    },
 }
 
 impl fmt::Display for ConstructionFailure {
@@ -54,6 +62,23 @@ impl fmt::Display for ConstructionFailure {
                 f,
                 "inconsistent equation while inserting key at index {key_index} near row {row_index}"
             ),
+            ConstructionFailure::OutOfBounds {
+                key_index,
+                row_index,
+                m,
+            } => {
+                if let Some(key_index) = key_index {
+                    write!(
+                        f,
+                        "row index {row_index} out of bounds for m={m} while inserting key at index {key_index}"
+                    )
+                } else {
+                    write!(
+                        f,
+                        "row index {row_index} out of bounds for m={m} during back-substitution"
+                    )
+                }
+            }
         }
     }
 }

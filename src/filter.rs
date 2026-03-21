@@ -55,8 +55,11 @@ where
         );
 
         for_each_set_bit_u128_parts(equation.coeff_lo, equation.coeff_hi, |offset| {
-            let row = self.z_row(equation.start + offset);
-            xor_words(&mut scratch.acc, row);
+            let row_index = equation.start + offset;
+            if row_index < self.params.m {
+                let row = self.z_row(row_index);
+                xor_words(&mut scratch.acc, row);
+            }
         });
 
         scratch.acc == scratch.fingerprint
