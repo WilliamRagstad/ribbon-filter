@@ -5,7 +5,14 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Static approximate-membership Ribbon filter"
 repository = "https://github.com/WilliamRagstad/ribbon-filter"
-keywords = ["filter", "membership", "probabilistic", "ribbon"]
+keywords = [
+    "ribbon",
+    "filter",
+    "membership",
+    "inclusion",
+    "containment",
+    "probabilistic",
+]
 categories = ["algorithms", "data-structures"]
 rust-version = "1.86"
 authors = ["William Rågstad"]
