@@ -148,6 +148,16 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --document-private-items
 cargo test
 ```
 
+## Benchmarks
+
+Run reproducible baseline benchmarks:
+
+```sh
+cargo run --release --bin ribbon-bench
+```
+
+Committed baseline numbers are in `regression/benchmarks.md`.
+
 ## Fuzzing
 
 Fuzz harnesses are under `fuzz/`.

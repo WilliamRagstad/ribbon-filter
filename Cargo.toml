@@ -3,5 +3,9 @@ name = "ribbon-filter"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "ribbon-bench"
+path = "tools/bin/ribbon_bench.rs"
+
 [dependencies]
 bitvec = "1"
