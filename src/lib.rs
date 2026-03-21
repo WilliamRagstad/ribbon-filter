@@ -1,14 +1,15 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![forbid(unsafe_code)]
+
+pub mod builder;
+pub mod error;
+pub mod filter;
+pub mod hashing;
+pub mod params;
+
+pub use builder::RibbonBuilder;
+pub use error::{BuildError, ConstructionFailure, ParamError};
+pub use filter::RibbonFilter;
+pub use params::{Mode, Params};
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+mod tests;
