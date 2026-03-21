@@ -38,6 +38,14 @@ The crate is designed around practical engineering constraints:
 
 This crate targets workloads where keys are known up front and then queried many times.
 
+## API Stability
+
+Current API is pre-1.0 and still evolving.
+
+- Minor releases may include breaking changes while internals and ergonomics are finalized.
+- Public behavior guarantees are documented in this README and crate docs, but signatures may still be refined.
+- For production evaluation, pin exact versions and review changelogs before upgrading.
+
 ## What This Crate Is
 
 This crate is a Rust implementation of a Ribbon filter builder/query pipeline with:

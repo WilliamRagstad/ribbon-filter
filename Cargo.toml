@@ -2,6 +2,12 @@
 name = "ribbon-filter"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Static approximate-membership Ribbon filter for Rust"
+repository = "https://github.com/example/ribbon-filter"
+keywords = ["filter", "membership", "probabilistic", "ribbon"]
+categories = ["algorithms", "data-structures"]
+rust-version = "1.86"
 
 [[bin]]
 name = "ribbon-bench"
