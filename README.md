@@ -162,6 +162,7 @@ cargo test
 - Stable: latest stable Rust
 - Platform matrix policy: see `docs/platforms.md`
 - Release process: see `docs/release-process.md`
+- Maintenance checklist: see `docs/maintenance.md`
 
 ## Benchmarks
 
