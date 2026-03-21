@@ -23,6 +23,7 @@ pub struct Params {
     pub mode: Mode,
     pub seed: u64,
     pub retry_limit: usize,
+    pub grow_limit: usize,
 }
 
 impl Params {
@@ -34,6 +35,7 @@ impl Params {
             mode,
             seed: 0,
             retry_limit: 1,
+            grow_limit: 0,
         };
         params.validate()?;
         Ok(params)
@@ -46,6 +48,17 @@ impl Params {
 
     pub fn with_retry_limit(mut self, retry_limit: usize) -> Result<Self, ParamError> {
         self.retry_limit = retry_limit;
+        self.validate()?;
+        Ok(self)
+    }
+
+    pub fn with_retry_policy(
+        mut self,
+        retry_limit: usize,
+        grow_limit: usize,
+    ) -> Result<Self, ParamError> {
+        self.retry_limit = retry_limit;
+        self.grow_limit = grow_limit;
         self.validate()?;
         Ok(self)
     }

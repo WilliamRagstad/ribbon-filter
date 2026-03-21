@@ -2,7 +2,7 @@ use std::hash::BuildHasher;
 
 use crate::error::{BuildError, ConstructionFailure};
 use crate::filter::RibbonFilter;
-use crate::hashing::{for_each_set_bit_u64, standard_equation_w64, xor_words};
+use crate::hashing::{derive_attempt_seed, for_each_set_bit_u64, standard_equation_w64, xor_words};
 use crate::params::Params;
 
 #[derive(Debug, Clone)]
@@ -34,7 +34,47 @@ where
     pub fn build<K: std::hash::Hash>(&self, keys: &[K]) -> Result<RibbonFilter<S>, BuildError> {
         self.params.validate().map_err(BuildError::InvalidParams)?;
 
-        let m = self.params.m;
+        let mut attempts = 0usize;
+        let mut current_m = self.params.m;
+        let mut last_failure = None;
+
+        for grow_step in 0..=self.params.grow_limit {
+            for retry_step in 0..self.params.retry_limit {
+                attempts += 1;
+                let attempt_index = ((grow_step as u64) << 32) | retry_step as u64;
+                let seed = derive_attempt_seed(self.params.seed, attempt_index);
+
+                match self.build_once(keys, current_m, seed) {
+                    Ok(filter) => return Ok(filter),
+                    Err(err) => last_failure = Some(err),
+                }
+            }
+
+            if grow_step < self.params.grow_limit {
+                let w = self.params.w;
+                current_m = (current_m * (w + 1)).div_ceil(w);
+                debug_assert!(current_m >= self.params.w);
+            }
+        }
+
+        Err(BuildError::ConstructionFailed {
+            final_m: current_m,
+            attempts,
+            last_failure: last_failure.unwrap_or(ConstructionFailure::InconsistentEquation {
+                key_index: 0,
+                row_index: 0,
+            }),
+        })
+    }
+
+    fn build_once<K: std::hash::Hash>(
+        &self,
+        keys: &[K],
+        m: usize,
+        seed: u64,
+    ) -> Result<RibbonFilter<S>, ConstructionFailure> {
+        debug_assert!(m >= self.params.w);
+
         let stride_words = self.params.fingerprint_words();
         let fp_last_mask = self.params.fingerprint_last_word_mask();
 
@@ -49,7 +89,7 @@ where
             let equation = standard_equation_w64(
                 &self.build_hasher,
                 key,
-                self.params.seed,
+                seed,
                 m,
                 self.params.w,
                 &mut key_fp,
@@ -59,6 +99,8 @@ where
             let mut i = equation.start;
             let mut c = equation.coeff;
             let mut b = key_fp.clone();
+
+            debug_assert!(i < m);
 
             loop {
                 if !occupied[i] {
@@ -75,16 +117,15 @@ where
                     if b.iter().all(|&x| x == 0) {
                         break;
                     }
-                    return Err(BuildError::ConstructionFailed(
-                        ConstructionFailure::InconsistentEquation {
-                            key_index,
-                            row_index: i,
-                        },
-                    ));
+                    return Err(ConstructionFailure::InconsistentEquation {
+                        key_index,
+                        row_index: i,
+                    });
                 }
 
                 let shift = c.trailing_zeros() as usize;
                 i += shift;
+                debug_assert!(i < m);
                 c >>= shift;
             }
         }
@@ -104,6 +145,7 @@ where
             for_each_set_bit_u64(upper_coeff, |offset| {
                 let other_start = (i + offset) * stride_words;
                 let other_end = other_start + stride_words;
+                debug_assert!(i + offset < m);
                 let mut row_copy = vec![0u64; stride_words];
                 row_copy.copy_from_slice(&z[other_start..other_end]);
                 xor_words(&mut z[row_start..row_end], &row_copy);
@@ -111,7 +153,14 @@ where
 
             z[row_end - 1] &= fp_last_mask;
         }
+        let mut built_params = self.params;
+        built_params.m = m;
+        built_params.seed = seed;
 
-        Ok(RibbonFilter::new(self.params, self.build_hasher.clone(), z))
+        Ok(RibbonFilter::new(
+            built_params,
+            self.build_hasher.clone(),
+            z,
+        ))
     }
 }

@@ -156,7 +156,12 @@ fn standard_builder_reports_inconsistent_equation_failure() {
     let result = builder.build(&keys);
 
     match result {
-        Err(BuildError::ConstructionFailed(_)) => {}
+        Err(BuildError::ConstructionFailed { last_failure, .. }) => {
+            assert!(matches!(
+                last_failure,
+                crate::ConstructionFailure::InconsistentEquation { .. }
+            ));
+        }
         Err(other) => panic!("expected construction failure, got {other}"),
         Ok(_) => panic!("expected failure, got success"),
     }
@@ -183,4 +188,107 @@ fn standard_builder_is_deterministic_for_same_input() {
             "non-deterministic result for key {probe}"
         );
     }
+}
+
+#[test]
+fn retry_path_is_exercised_and_eventually_succeeds() {
+    let hasher = DefaultBuildHasher::default();
+    let keys: Vec<u64> = (0..500).collect();
+    let params = Params::new(16, 16, 8, Mode::Standard)
+        .expect("params valid")
+        .with_seed(1)
+        .with_retry_policy(3, 0)
+        .expect("retry policy valid");
+    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
+
+    match builder.build(&keys) {
+        Err(BuildError::ConstructionFailed {
+            final_m,
+            attempts,
+            last_failure,
+        }) => {
+            assert_eq!(final_m, 16);
+            assert_eq!(attempts, 3);
+            assert!(matches!(
+                last_failure,
+                crate::ConstructionFailure::InconsistentEquation { .. }
+            ));
+        }
+        other => panic!("expected retry-exhausted failure, got {other:?}"),
+    }
+}
+
+#[test]
+fn growth_path_is_exercised_and_reports_grown_m() {
+    let hasher = DefaultBuildHasher::default();
+    let keys: Vec<u64> = (0..500).collect();
+    let params = Params::new(16, 16, 8, Mode::Standard)
+        .expect("params valid")
+        .with_seed(1)
+        .with_retry_policy(2, 2)
+        .expect("retry policy valid");
+    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
+
+    match builder.build(&keys) {
+        Err(BuildError::ConstructionFailed {
+            final_m,
+            attempts,
+            last_failure,
+        }) => {
+            assert_eq!(attempts, 6);
+            assert_eq!(final_m, 19);
+            assert!(matches!(
+                last_failure,
+                crate::ConstructionFailure::InconsistentEquation { .. }
+            ));
+        }
+        other => panic!("expected growth-exhausted failure, got {other:?}"),
+    }
+}
+
+#[test]
+fn terminal_failure_reports_attempts_and_final_m() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(16, 16, 8, Mode::Standard)
+        .expect("params valid")
+        .with_seed(1)
+        .with_retry_policy(2, 2)
+        .expect("retry policy valid");
+    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
+    let keys: Vec<u64> = (0..500).collect();
+
+    match builder.build(&keys) {
+        Err(BuildError::ConstructionFailed {
+            final_m,
+            attempts,
+            last_failure,
+        }) => {
+            assert_eq!(attempts, 6);
+            assert_eq!(final_m, 19);
+            assert!(matches!(
+                last_failure,
+                crate::ConstructionFailure::InconsistentEquation { .. }
+            ));
+        }
+        other => panic!("expected terminal construction failure, got {other:?}"),
+    }
+}
+
+#[test]
+fn successful_build_persists_selected_attempt_seed() {
+    let hasher = DefaultBuildHasher::default();
+    let base_seed = 123u64;
+    let params = Params::new(3000, 16, 9, Mode::Standard)
+        .expect("params valid")
+        .with_seed(base_seed)
+        .with_retry_policy(1, 0)
+        .expect("retry policy valid");
+    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
+    let keys: Vec<u64> = (0..1000).collect();
+
+    let filter = builder.build(&keys).expect("build should succeed");
+    assert_eq!(
+        filter.params().seed,
+        crate::hashing::derive_attempt_seed(base_seed, 0)
+    );
 }

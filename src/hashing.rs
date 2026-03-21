@@ -54,6 +54,11 @@ fn fastrange_u64(x: u64, range: usize) -> usize {
     ((x as u128 * range as u128) >> 64) as usize
 }
 
+pub(crate) fn derive_attempt_seed(base_seed: u64, attempt_index: u64) -> u64 {
+    let mut sm = SplitMix64::new(base_seed ^ attempt_index.wrapping_mul(MIX_CONST));
+    sm.next_u64().wrapping_mul(MIX_CONST)
+}
+
 pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
     build_hasher: &S,
     key: &Q,

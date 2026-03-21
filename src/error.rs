@@ -46,14 +46,25 @@ impl std::error::Error for ConstructionFailure {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BuildError {
     InvalidParams(ParamError),
-    ConstructionFailed(ConstructionFailure),
+    ConstructionFailed {
+        final_m: usize,
+        attempts: usize,
+        last_failure: ConstructionFailure,
+    },
 }
 
 impl fmt::Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BuildError::InvalidParams(err) => write!(f, "invalid parameters: {err}"),
-            BuildError::ConstructionFailed(err) => write!(f, "construction failed: {err}"),
+            BuildError::ConstructionFailed {
+                final_m,
+                attempts,
+                last_failure,
+            } => write!(
+                f,
+                "construction failed after {attempts} attempt(s) at m={final_m}: {last_failure}"
+            ),
         }
     }
 }
