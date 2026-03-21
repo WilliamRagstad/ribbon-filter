@@ -6,6 +6,26 @@ use crate::hashing::{derive_attempt_seed, for_each_set_bit_u64, standard_equatio
 use crate::params::Params;
 
 #[derive(Debug, Clone)]
+pub struct Scratch {
+    pub(crate) fingerprint: Vec<u64>,
+    pub(crate) acc: Vec<u64>,
+}
+
+impl Scratch {
+    pub(crate) fn new(stride_words: usize) -> Self {
+        Self {
+            fingerprint: vec![0; stride_words],
+            acc: vec![0; stride_words],
+        }
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.fingerprint.fill(0);
+        self.acc.fill(0);
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct RibbonBuilder<S> {
     params: Params,
     build_hasher: S,

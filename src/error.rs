@@ -1,24 +1,34 @@
 use core::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ParamError {
     ZeroM,
+    ZeroN,
     ZeroWidth,
     ZeroFingerprintBits,
     WidthExceedsM { m: usize, w: usize },
     ZeroRetryLimit,
+    InvalidFalsePositiveRate { fpr: f64 },
+    InvalidOverhead { overhead: f64 },
 }
 
 impl fmt::Display for ParamError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParamError::ZeroM => write!(f, "m must be greater than zero"),
+            ParamError::ZeroN => write!(f, "n must be greater than zero"),
             ParamError::ZeroWidth => write!(f, "w must be greater than zero"),
             ParamError::ZeroFingerprintBits => write!(f, "r must be greater than zero"),
             ParamError::WidthExceedsM { m, w } => {
                 write!(f, "w ({w}) must be less than or equal to m ({m})")
             }
             ParamError::ZeroRetryLimit => write!(f, "retry_limit must be greater than zero"),
+            ParamError::InvalidFalsePositiveRate { fpr } => {
+                write!(f, "false positive rate must be in (0, 1), got {fpr}")
+            }
+            ParamError::InvalidOverhead { overhead } => {
+                write!(f, "overhead must be in [0, 10], got {overhead}")
+            }
         }
     }
 }
@@ -43,7 +53,7 @@ impl fmt::Display for ConstructionFailure {
 
 impl std::error::Error for ConstructionFailure {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BuildError {
     InvalidParams(ParamError),
     ConstructionFailed {
@@ -70,3 +80,34 @@ impl fmt::Display for BuildError {
 }
 
 impl std::error::Error for BuildError {}
+
+#[cfg(test)]
+mod tests {
+    use super::{BuildError, ConstructionFailure, ParamError};
+
+    #[test]
+    fn param_error_display_is_actionable() {
+        assert_eq!(ParamError::ZeroM.to_string(), "m must be greater than zero");
+        assert_eq!(
+            ParamError::WidthExceedsM { m: 3, w: 4 }.to_string(),
+            "w (4) must be less than or equal to m (3)"
+        );
+    }
+
+    #[test]
+    fn build_error_display_contains_context() {
+        let err = BuildError::ConstructionFailed {
+            final_m: 19,
+            attempts: 6,
+            last_failure: ConstructionFailure::InconsistentEquation {
+                key_index: 7,
+                row_index: 2,
+            },
+        };
+
+        let msg = err.to_string();
+        assert!(msg.contains("6 attempt"));
+        assert!(msg.contains("m=19"));
+        assert!(msg.contains("key at index 7"));
+    }
+}

@@ -63,6 +63,32 @@ impl Params {
         Ok(self)
     }
 
+    pub fn r_from_fpr(fpr: f64) -> Result<usize, ParamError> {
+        if !(0.0 < fpr && fpr < 1.0) {
+            return Err(ParamError::InvalidFalsePositiveRate { fpr });
+        }
+        let r = (-fpr.log2()).ceil() as usize;
+        Ok(r.max(1))
+    }
+
+    pub fn from_expected_items(
+        n: usize,
+        overhead: f64,
+        w: usize,
+        r: usize,
+        mode: Mode,
+    ) -> Result<Self, ParamError> {
+        if n == 0 {
+            return Err(ParamError::ZeroN);
+        }
+        if !(0.0..=10.0).contains(&overhead) {
+            return Err(ParamError::InvalidOverhead { overhead });
+        }
+
+        let m = ((n as f64) * (1.0 + overhead)).ceil() as usize;
+        Self::new(m.max(w), w, r, mode)
+    }
+
     pub fn validate(&self) -> Result<(), ParamError> {
         if self.m == 0 {
             return Err(ParamError::ZeroM);

@@ -19,6 +19,13 @@ fn params_rejects_zero_w() {
 }
 
 #[test]
+fn params_rejects_zero_n_in_expected_items() {
+    let err =
+        Params::from_expected_items(0, 0.1, 4, 8, Mode::Standard).expect_err("n=0 should fail");
+    assert_eq!(err, ParamError::ZeroN);
+}
+
+#[test]
 fn params_rejects_zero_r() {
     let err = Params::new(10, 4, 0, Mode::Standard).expect_err("r=0 should fail");
     assert_eq!(err, ParamError::ZeroFingerprintBits);
@@ -45,6 +52,32 @@ fn params_accepts_valid_values() {
     assert_eq!(params.m, 16);
     assert_eq!(params.w, 8);
     assert_eq!(params.r, 12);
+}
+
+#[test]
+fn params_r_from_fpr_rounding_and_range() {
+    assert_eq!(Params::r_from_fpr(0.5).expect("valid fpr"), 1);
+    assert_eq!(Params::r_from_fpr(0.1).expect("valid fpr"), 4);
+    assert!(matches!(
+        Params::r_from_fpr(0.0),
+        Err(ParamError::InvalidFalsePositiveRate { .. })
+    ));
+}
+
+#[test]
+fn params_from_expected_items_computes_m() {
+    let p = Params::from_expected_items(1000, 0.2, 16, 8, Mode::Standard)
+        .expect("params should be valid");
+    assert_eq!(p.m, 1200);
+    assert_eq!(p.w, 16);
+    assert_eq!(p.r, 8);
+}
+
+#[test]
+fn params_from_expected_items_rejects_overhead_out_of_range() {
+    let err = Params::from_expected_items(1000, 10.1, 16, 8, Mode::Standard)
+        .expect_err("overhead > 10 should fail");
+    assert!(matches!(err, ParamError::InvalidOverhead { .. }));
 }
 
 #[test]
@@ -186,6 +219,65 @@ fn standard_builder_is_deterministic_for_same_input() {
             filter_a.contains(&probe),
             filter_b.contains(&probe),
             "non-deterministic result for key {probe}"
+        );
+    }
+}
+
+#[derive(Default, Clone)]
+struct ConstantBuildHasher;
+
+impl std::hash::BuildHasher for ConstantBuildHasher {
+    type Hasher = ConstantHasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        ConstantHasher::default()
+    }
+}
+
+#[derive(Default, Clone)]
+struct ConstantHasher;
+
+impl std::hash::Hasher for ConstantHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, _bytes: &[u8]) {}
+}
+
+#[test]
+fn builder_supports_custom_buildhasher() {
+    let hasher = ConstantBuildHasher;
+    let params = Params::new(3000, 16, 9, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(88);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should build");
+
+    let keys: Vec<u64> = (0..200).collect();
+    let filter = builder.build(&keys).expect("build should succeed");
+
+    let mut scratch = filter.new_scratch();
+    for key in &keys {
+        assert!(filter.contains_in(key, &mut scratch));
+    }
+}
+
+#[test]
+fn contains_and_contains_in_are_equivalent() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(3000, 16, 9, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(77);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should build");
+    let keys: Vec<u64> = (1000..2000).collect();
+    let filter = builder.build(&keys).expect("build should succeed");
+
+    let mut scratch = filter.new_scratch();
+    for probe in 900..2100u64 {
+        assert_eq!(
+            filter.contains(&probe),
+            filter.contains_in(&probe, &mut scratch),
+            "contains mismatch at key {probe}"
         );
     }
 }

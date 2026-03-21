@@ -1,5 +1,6 @@
 use std::hash::{BuildHasher, Hash};
 
+use crate::builder::Scratch;
 use crate::hashing::{for_each_set_bit_u64, standard_equation_w64, xor_words};
 use crate::params::Params;
 
@@ -29,25 +30,36 @@ where
         self.params
     }
 
+    pub fn new_scratch(&self) -> Scratch {
+        Scratch::new(self.stride_words)
+    }
+
     pub fn contains<Q: Hash + ?Sized>(&self, key: &Q) -> bool {
-        let mut fingerprint = vec![0u64; self.stride_words];
+        let mut scratch = self.new_scratch();
+        self.contains_in(key, &mut scratch)
+    }
+
+    pub fn contains_in<Q: Hash + ?Sized>(&self, key: &Q, scratch: &mut Scratch) -> bool {
+        debug_assert_eq!(scratch.fingerprint.len(), self.stride_words);
+        debug_assert_eq!(scratch.acc.len(), self.stride_words);
+        scratch.reset();
+
         let equation = standard_equation_w64(
             &self.build_hasher,
             key,
             self.params.seed,
             self.params.m,
             self.params.w,
-            &mut fingerprint,
+            &mut scratch.fingerprint,
             self.params.fingerprint_last_word_mask(),
         );
 
-        let mut acc = vec![0u64; self.stride_words];
         for_each_set_bit_u64(equation.coeff, |offset| {
             let row = self.z_row(equation.start + offset);
-            xor_words(&mut acc, row);
+            xor_words(&mut scratch.acc, row);
         });
 
-        acc == fingerprint
+        scratch.acc == scratch.fingerprint
     }
 
     fn z_row(&self, row: usize) -> &[u64] {
