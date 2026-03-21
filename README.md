@@ -167,6 +167,8 @@ rustup toolchain install nightly
 cargo +nightly install cargo-fuzz
 cargo +nightly fuzz list # target discovery
 cargo +nightly fuzz run build_query -- -max_total_time=60
+cargo +nightly fuzz run build_query_structured -- -max_total_time=60
 ```
 
 The `build_query` harness stresses parameter decoding, construction paths, and query calls across edge-shaped inputs.
+The `build_query_structured` harness uses `Arbitrary`-driven typed inputs to perform structure-aware fuzzing over params, keys, and query behavior.

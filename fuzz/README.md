@@ -5,11 +5,13 @@ This directory contains cargo-fuzz harnesses for panic-resilience testing.
 ## Target
 
 - `build_query`: exercises parameter parsing, builder construction, and membership queries across edge-sized parameter combinations.
+- `build_query_structured`: structure-aware target using `Arbitrary` typed inputs for params, key generation, and query checks.
 
 ## Run
 
 ```sh
 cargo fuzz run build_query -- -max_total_time=60
+cargo fuzz run build_query_structured -- -max_total_time=60
 ```
 
 ## Notes
