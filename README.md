@@ -38,26 +38,6 @@ The crate is designed around practical engineering constraints:
 
 This crate targets workloads where keys are known up front and then queried many times.
 
-## API Stability
-
-Current API is pre-1.0 and still evolving.
-
-- Minor releases may include breaking changes while internals and ergonomics are finalized.
-- Public behavior guarantees are documented in this README and crate docs, but signatures may still be refined.
-- For production evaluation, pin exact versions and review changelogs before upgrading.
-
-## What This Crate Is
-
-This crate is a Rust implementation of a Ribbon filter builder/query pipeline with:
-
-- `Mode::Standard` (fingerprint equality checks),
-- `Mode::Homogeneous` (zero right-hand-side constraints),
-- widths `w` in `1..=128`,
-- one-shot plus retry/grow construction behavior,
-- bit-packed final filter matrix storage.
-
-It is **not** a dynamic insert/delete structure and it is **not** a general-purpose probabilistic collection API yet.
-
 ## Usage
 
 Add the crate to your `Cargo.toml`:
@@ -95,11 +75,29 @@ fn main() -> Result<(), Error> {
   assert!(filter.contains_in(&123u64, &mut scratch));
 -->
 
-## Modes
+## What This Crate Is
 
-- `Mode::Standard`: Uses generated fingerprints (`b(x)`) and checks query result equality, expected false-positive behavior follows the configured fingerprint width.
+This crate is a Rust implementation of a Ribbon filter builder/query pipeline with:
 
-- `Mode::Homogeneous`: Uses zero right-hand-side constraints, construction path is simplified for this mode, retained keys still satisfy no-false-negative behavior in tests.
+- `Mode::Standard` (fingerprint equality checks),
+- `Mode::Homogeneous` (zero right-hand-side constraints),
+- widths `w` in `1..=128`,
+- one-shot plus retry/grow construction behavior,
+- bit-packed final filter matrix storage.
+
+It is **not** a dynamic insert/delete structure and it is **not** a general-purpose probabilistic collection API yet.
+
+### Guarantees
+
+- Build success implies **no false negatives** for inserted keys.
+- Query behavior is deterministic for fixed hasher + params + key-set.
+- Construction failures are surfaced with structured diagnostics.
+
+### Limits
+
+- Static structure: no online insert/delete API.
+- Current width support is capped at `128`.
+- Public API and internals are still evolving toward release-hardening milestones.
 
 ## Parameter Guide
 
@@ -115,21 +113,13 @@ Helper constructors:
 - `Params::r_from_fpr(fpr)`: derive `r` for a target false-positive rate.
 - `Params::from_expected_items(n, overhead, w, r, mode)`: derive `m` for expected item count and overhead target.
 
-## Guarantees and Limits
+## Modes
 
-### Guarantees
+- `Mode::Standard`: Uses generated fingerprints (`b(x)`) and checks query result equality, expected false-positive behavior follows the configured fingerprint width.
 
-- Build success implies **no false negatives** for inserted keys.
-- Query behavior is deterministic for fixed hasher + params + key-set.
-- Construction failures are surfaced with structured diagnostics.
+- `Mode::Homogeneous`: Uses zero right-hand-side constraints, construction path is simplified for this mode, retained keys still satisfy no-false-negative behavior in tests.
 
-### Limits
-
-- Static structure: no online insert/delete API.
-- Current width support is capped at `128`.
-- Public API and internals are still evolving toward release-hardening milestones.
-
-## Current Feature Status
+## Features
 
 - [x] Standard mode construction and queries
 - [x] Homogeneous mode construction and queries
@@ -144,6 +134,8 @@ Helper constructors:
 - [x] Adversarial regression corpus
 - [x] CI gates for fmt/clippy/docs/tests
 
+&nbsp;
+
 ## Testing
 
 This repository includes: unit and integration-style behavior tests, statistical false-positive guardrails, generated invariant and determinism test cases, adversarial pattern regression coverage, CI checks for formatting, linting, docs, and tests.
@@ -155,14 +147,6 @@ cargo clippy --all-targets --all-features -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --document-private-items
 cargo test
 ```
-
-## Toolchain and Platforms
-
-- MSRV: Rust `1.86.0`
-- Stable: latest stable Rust
-- Platform matrix policy: see `docs/platforms.md`
-- Release process: see `docs/release-process.md`
-- Maintenance checklist: see `docs/maintenance.md`
 
 ## Benchmarks
 
