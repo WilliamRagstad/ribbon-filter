@@ -86,16 +86,7 @@ fn hash_pipeline_start_in_range_and_pivot_forced() {
     let params = Params::new(128, 17, 13, Mode::Standard).expect("params must be valid");
     let mut fp = vec![0u64; params.fingerprint_words()];
 
-    let eq = standard_equation_w64(
-        &hasher,
-        &"hello-key",
-        42,
-        params.m,
-        params.w,
-        Mode::Standard,
-        &mut fp,
-        params.fingerprint_last_word_mask(),
-    );
+    let eq = standard_equation_w64(&hasher, &"hello-key", 42, &params, &mut fp);
 
     assert!(eq.start < params.start_range());
     assert_eq!(eq.coeff_lo & 1, 1);
@@ -107,16 +98,7 @@ fn hash_pipeline_masks_fingerprint_to_r_bits() {
     let params = Params::new(64, 8, 9, Mode::Standard).expect("params must be valid");
     let mut fp = vec![0u64; params.fingerprint_words()];
 
-    let _ = standard_equation_w64(
-        &hasher,
-        &12345u64,
-        7,
-        params.m,
-        params.w,
-        Mode::Standard,
-        &mut fp,
-        params.fingerprint_last_word_mask(),
-    );
+    let _ = standard_equation_w64(&hasher, &12345u64, 7, &params, &mut fp);
 
     assert_eq!(fp[0] & !params.fingerprint_last_word_mask(), 0);
 }
@@ -128,26 +110,8 @@ fn hash_pipeline_is_deterministic_for_seed_and_key() {
     let mut fp_a = vec![0u64; params.fingerprint_words()];
     let mut fp_b = vec![0u64; params.fingerprint_words()];
 
-    let eq_a = standard_equation_w64(
-        &hasher,
-        &"deterministic-key",
-        999,
-        params.m,
-        params.w,
-        Mode::Standard,
-        &mut fp_a,
-        params.fingerprint_last_word_mask(),
-    );
-    let eq_b = standard_equation_w64(
-        &hasher,
-        &"deterministic-key",
-        999,
-        params.m,
-        params.w,
-        Mode::Standard,
-        &mut fp_b,
-        params.fingerprint_last_word_mask(),
-    );
+    let eq_a = standard_equation_w64(&hasher, &"deterministic-key", 999, &params, &mut fp_a);
+    let eq_b = standard_equation_w64(&hasher, &"deterministic-key", 999, &params, &mut fp_b);
 
     assert_eq!(eq_a, eq_b);
     assert_eq!(fp_a, fp_b);
@@ -234,7 +198,7 @@ impl std::hash::BuildHasher for ConstantBuildHasher {
     type Hasher = ConstantHasher;
 
     fn build_hasher(&self) -> Self::Hasher {
-        ConstantHasher::default()
+        ConstantHasher
     }
 }
 
@@ -413,16 +377,7 @@ fn homogeneous_pipeline_has_zero_fingerprint() {
     let params = Params::new(128, 16, 9, Mode::Homogeneous).expect("params must be valid");
     let mut fp = vec![0u64; params.fingerprint_words()];
 
-    let _ = standard_equation_w64(
-        &hasher,
-        &"h-key",
-        11,
-        params.m,
-        params.w,
-        Mode::Homogeneous,
-        &mut fp,
-        params.fingerprint_last_word_mask(),
-    );
+    let _ = standard_equation_w64(&hasher, &"h-key", 11, &params, &mut fp);
 
     assert!(fp.iter().all(|&w| w == 0));
 }
@@ -435,16 +390,7 @@ fn width_128_pipeline_sets_bits_in_both_halves() {
     let mut saw_hi = false;
     for seed in 0..500u64 {
         let mut fp = vec![0u64; params.fingerprint_words()];
-        let eq = standard_equation_w64(
-            &hasher,
-            &"w128-key",
-            seed,
-            params.m,
-            params.w,
-            Mode::Standard,
-            &mut fp,
-            params.fingerprint_last_word_mask(),
-        );
+        let eq = standard_equation_w64(&hasher, &"w128-key", seed, &params, &mut fp);
 
         if eq.coeff_hi != 0 {
             saw_hi = true;

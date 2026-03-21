@@ -50,11 +50,8 @@ where
             &self.build_hasher,
             key,
             self.params.seed,
-            self.params.m,
-            self.params.w,
-            self.params.mode,
+            &self.params,
             &mut scratch.fingerprint,
-            self.params.fingerprint_last_word_mask(),
         );
 
         for_each_set_bit_u128_parts(equation.coeff_lo, equation.coeff_hi, |offset| {

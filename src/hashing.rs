@@ -1,7 +1,7 @@
 use core::hash::Hash;
 use std::hash::BuildHasher;
 
-use crate::params::Mode;
+use crate::params::{Mode, Params};
 
 const MIX_CONST: u64 = 0x9E37_79B9_7F4A_7C15;
 
@@ -73,24 +73,25 @@ pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
     build_hasher: &S,
     key: &Q,
     seed: u64,
-    m: usize,
-    w: usize,
-    mode: Mode,
+    params: &Params,
     fingerprint: &mut [u64],
-    last_word_mask: u64,
 ) -> StandardEquation {
     let base_hash = build_hasher.hash_one(key);
     let stream_seed = (base_hash ^ seed).wrapping_mul(MIX_CONST);
     let mut stream = SplitMix64::new(stream_seed);
 
-    let start = start_position_from_stream(stream.next_u64(), m, w);
+    let start = start_position_from_stream(stream.next_u64(), params.m, params.w);
 
-    let (coeff_lo, coeff_hi) = if w <= 64 {
-        let width_mask = if w == 64 { u64::MAX } else { (1u64 << w) - 1 };
+    let (coeff_lo, coeff_hi) = if params.w <= 64 {
+        let width_mask = if params.w == 64 {
+            u64::MAX
+        } else {
+            (1u64 << params.w) - 1
+        };
         ((stream.next_u64() & width_mask) | 1, 0)
     } else {
         let lo = stream.next_u64();
-        let hi_bits = w - 64;
+        let hi_bits = params.w - 64;
         let hi_mask = if hi_bits == 64 {
             u64::MAX
         } else {
@@ -99,14 +100,14 @@ pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
         (lo | 1, stream.next_u64() & hi_mask)
     };
 
-    if matches!(mode, Mode::Homogeneous) {
+    if matches!(params.mode, Mode::Homogeneous) {
         fingerprint.fill(0);
     } else {
         for word in fingerprint.iter_mut() {
             *word = stream.next_u64();
         }
         if let Some(last) = fingerprint.last_mut() {
-            *last &= last_word_mask;
+            *last &= params.fingerprint_last_word_mask();
         }
     }
 

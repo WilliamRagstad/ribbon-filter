@@ -107,7 +107,6 @@ where
 
         let stride_words = self.params.fingerprint_words();
         let fp_last_mask = self.params.fingerprint_last_word_mask();
-
         let mut occupied = vec![false; m];
         let mut coeff_lo = vec![0u64; m];
         let mut coeff_hi = vec![0u64; m];
@@ -121,11 +120,8 @@ where
                 &self.build_hasher,
                 key,
                 seed,
-                m,
-                self.params.w,
-                self.params.mode,
+                &Params { m, ..self.params },
                 &mut key_fp,
-                fp_last_mask,
             );
 
             let mut i = equation.start;
