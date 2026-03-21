@@ -535,3 +535,51 @@ fn start_position_hook_stays_in_bounds() {
         assert!(s < range, "start position out of range for x={x}: {s}");
     }
 }
+
+#[test]
+fn statistical_false_positive_rates_are_within_confidence_bounds() {
+    let hasher = DefaultBuildHasher::default();
+    let seeds = [11u64, 42u64, 777u64];
+    let sizes = [1000usize, 5000usize];
+    let rs = [8usize, 12usize];
+
+    for &seed in &seeds {
+        for &n in &sizes {
+            for &r in &rs {
+                let params = Params::new(n * 4, 16, r, Mode::Standard)
+                    .expect("params should be valid")
+                    .with_seed(seed)
+                    .with_retry_policy(4, 1)
+                    .expect("retry policy should be valid");
+                let builder =
+                    RibbonBuilder::new(params, hasher.clone()).expect("builder should be valid");
+                let keys: Vec<u64> = (0..n as u64).collect();
+                let filter = builder.build(&keys).expect("construction should succeed");
+
+                let queries = 20_000usize;
+                let query_start = 10_000_000u64 + (seed << 20) + n as u64;
+                let mut scratch = filter.new_scratch();
+                let mut fp = 0usize;
+                for q in 0..queries {
+                    if filter.contains_in(&(query_start + q as u64), &mut scratch) {
+                        fp += 1;
+                    }
+                }
+
+                let p = 2f64.powi(-(r as i32));
+                let mean = (queries as f64) * p;
+                let var = (queries as f64) * p * (1.0 - p);
+                let sigma = var.sqrt();
+                let tolerance = (8.0 * sigma).max(8.0);
+                let lower = (mean - tolerance).max(0.0);
+                let upper = mean + tolerance;
+                let observed = fp as f64;
+
+                assert!(
+                    observed >= lower && observed <= upper,
+                    "fp out of bounds seed={seed} n={n} r={r}: observed={observed} expected~{mean} bounds=[{lower}, {upper}]"
+                );
+            }
+        }
+    }
+}
