@@ -62,6 +62,14 @@ fn fastrange_u64(x: u64, range: usize) -> usize {
     ((x as u128 * range as u128) >> 64) as usize
 }
 
+#[inline]
+pub(crate) fn start_position_from_stream(next_word: u64, m: usize, w: usize) -> usize {
+    let start_range = m - w + 1;
+    // TODO: add optional boundary smash strategy here.
+    // TODO: add fractional-r/ICML tuned layout hooks once layout work starts.
+    fastrange_u64(next_word, start_range)
+}
+
 pub(crate) fn derive_attempt_seed(base_seed: u64, attempt_index: u64) -> u64 {
     let mut sm = SplitMix64::new(base_seed ^ attempt_index.wrapping_mul(MIX_CONST));
     sm.next_u64().wrapping_mul(MIX_CONST)
@@ -81,7 +89,7 @@ pub(crate) fn standard_equation_w64<S: BuildHasher, Q: Hash + ?Sized>(
     let stream_seed = (base_hash ^ seed).wrapping_mul(MIX_CONST);
     let mut stream = SplitMix64::new(stream_seed);
 
-    let start = fastrange_u64(stream.next_u64(), m - w + 1);
+    let start = start_position_from_stream(stream.next_u64(), m, w);
 
     let (coeff_lo, coeff_hi) = if w <= 64 {
         let width_mask = if w == 64 { u64::MAX } else { (1u64 << w) - 1 };

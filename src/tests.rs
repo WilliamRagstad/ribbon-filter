@@ -2,7 +2,7 @@ use crate::{BuildError, Mode, ParamError, Params, RibbonBuilder};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::BuildHasherDefault;
 
-use crate::hashing::standard_equation_w64;
+use crate::hashing::{standard_equation_w64, start_position_from_stream};
 
 type DefaultBuildHasher = BuildHasherDefault<DefaultHasher>;
 
@@ -521,5 +521,17 @@ fn compatibility_matrix_modes_widths_and_fingerprints() {
                 }
             }
         }
+    }
+}
+
+#[test]
+fn start_position_hook_stays_in_bounds() {
+    let m = 256usize;
+    let w = 64usize;
+    let range = m - w + 1;
+
+    for x in [0u64, 1, 7, u64::MAX / 2, u64::MAX] {
+        let s = start_position_from_stream(x, m, w);
+        assert!(s < range, "start position out of range for x={x}: {s}");
     }
 }
