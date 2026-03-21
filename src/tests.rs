@@ -475,3 +475,19 @@ fn builder_supports_width_above_64() {
         assert!(filter.contains_in(key, &mut scratch));
     }
 }
+
+#[test]
+fn bitpacked_storage_maintains_membership_behavior() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(3000, 16, 12, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(1234);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should build");
+    let keys: Vec<u64> = (0..1000).collect();
+    let filter = builder.build(&keys).expect("build should succeed");
+
+    let mut scratch = filter.new_scratch();
+    for key in &keys {
+        assert!(filter.contains_in(key, &mut scratch));
+    }
+}

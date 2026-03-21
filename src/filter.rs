@@ -1,3 +1,4 @@
+use bitvec::prelude::{BitVec, Lsb0};
 use std::hash::{BuildHasher, Hash};
 
 use crate::builder::Scratch;
@@ -8,7 +9,7 @@ use crate::params::Params;
 pub struct RibbonFilter<S> {
     params: Params,
     build_hasher: S,
-    z: Vec<u64>,
+    z: BitVec<u64, Lsb0>,
     stride_words: usize,
 }
 
@@ -18,6 +19,7 @@ where
 {
     pub(crate) fn new(params: Params, build_hasher: S, z: Vec<u64>) -> Self {
         let stride_words = params.fingerprint_words();
+        let z = BitVec::<u64, Lsb0>::from_vec(z);
         Self {
             params,
             build_hasher,
@@ -66,6 +68,6 @@ where
     fn z_row(&self, row: usize) -> &[u64] {
         let start = row * self.stride_words;
         let end = start + self.stride_words;
-        &self.z[start..end]
+        &self.z.as_raw_slice()[start..end]
     }
 }
