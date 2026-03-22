@@ -2,6 +2,7 @@ use core::fmt;
 
 use crate::error::ParamError;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Standard,
@@ -17,6 +18,7 @@ impl fmt::Display for Mode {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Params {
     pub m: usize,
