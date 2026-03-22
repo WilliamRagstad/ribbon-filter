@@ -152,9 +152,8 @@ Run Criterion benchmarks locally:
 cargo bench --bench main
 ```
 
+Benchmark regression checks also run in [GitHub Actions](.github/workflows/benchmark.yml) and compare PR benchmark output against saved baseline.
 View Criterion HTML reports in `target/criterion/`.
-
-Benchmark regression checks also run in GitHub Actions (`.github/workflows/benchmark.yml`) and compare PR benchmark output against saved baseline data from `main`.
 
 ### Fuzzing
 
