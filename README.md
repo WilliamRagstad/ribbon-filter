@@ -113,6 +113,18 @@ Helper constructors:
 
 - `Mode::Homogeneous`: Uses zero right-hand-side constraints, construction path is simplified for this mode, retained keys still satisfy no-false-negative behavior in tests.
 
+## Feature Flags
+
+The crate currently ships a minimal default build (no optional flags enabled) and treats additional capabilities as opt-in.
+
+| Feature flag | Status | Purpose |
+|---|---|---|
+| *(default build)* | Current | Core builder/query pipeline with no optional dependency surface. |
+| `rayon` | Planned | Parallel construction and/or batched query helpers for multi-core workloads. |
+| `serde` | Planned | Serialization support for persisted filters and transport between processes. |
+| `fast-ahash` | Planned | Optional high-throughput hashing backend for faster non-cryptographic key hashing. |
+| `fast-xxh3` | Planned | Optional XXH3-based hashing backend for high-throughput key distributions. |
+
 ## Features
 
 - [x] Standard mode construction and queries
