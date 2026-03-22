@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use bloomz::BloomFilter as BloomzFilter;
 
-use crate::common::{ResultRow, FP_RATE};
+use crate::common::{FP_RATE, ResultRow};
 
 fn bloomz_bits(filter: &BloomzFilter) -> usize {
     let bytes = filter.to_bytes();

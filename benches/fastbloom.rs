@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use fastbloom_rs::{FilterBuilder as FastBloomBuilder, Membership};
 
-use crate::common::{ResultRow, FP_RATE};
+use crate::common::{FP_RATE, ResultRow};
 
 pub fn measure(n: usize, q: usize) -> ResultRow {
     let keys: Vec<u64> = (0..n as u64).collect();
