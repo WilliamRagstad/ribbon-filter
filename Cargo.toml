@@ -16,3 +16,8 @@ path = "benches/ribbon.rs"
 
 [dependencies]
 bitvec = "1"
+
+[dev-dependencies]
+bloomfilter = "3"
+bloomz = "0.1"
+fastbloom-rs = "0.5"
