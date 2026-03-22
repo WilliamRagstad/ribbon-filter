@@ -1,0 +1,45 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  criterion:
+    name: Criterion benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Download benchmark cache
+        uses: actions/cache@v4
+        with:
+          path: ./benchmark-cache
+          key: ${{ runner.os }}-criterion-benchmark-data
+
+      - name: Run benchmarks
+        run: cargo bench --bench main -- --output-format bencher | tee output.txt
+
+      - name: Compare benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Ribbon filter benchmarks
+          tool: cargo
+          output-file-path: output.txt
+          external-data-json-path: ./benchmark-cache/benchmark-data.json
+          fail-on-alert: true
+          alert-threshold: "120%"
+          comment-on-alert: true
+          summary-always: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          save-data-file: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
