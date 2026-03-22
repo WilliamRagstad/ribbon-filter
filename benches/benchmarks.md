@@ -1,18 +1,16 @@
-# Benchmark Baseline
+# Benchmark Notes
 
-Generated with:
+This file keeps the last baseline captured by the legacy one-shot `Instant` harness.
 
-```sh
-cargo bench --bench main
-```
+The benchmark suite now uses Criterion (`cargo bench --bench main`) with statistical sampling,
+confidence intervals, and grouped build/query benchmarks.
 
-Environment:
+For current benchmark output and regressions:
 
-- date: 2026-03-22
-- profile: release
-- platform: windows x86_64 (msvc)
+- run locally and inspect `target/criterion/`
+- check GitHub Action results from `.github/workflows/benchmark.yml`
 
-Results:
+Legacy baseline snapshot:
 
 | impl | scenario | build_us | query_us | bits_per_key |
 |---|---|---:|---:|---:|
@@ -32,7 +30,7 @@ Results:
 | bloomz | n=100000;w=96;r=10 | 5253 | 57158 | 9.5851 |
 | clubcard | n=100000;w=96;r=10 | 184790 | 77023 | 5.3779 |
 
-Notes:
+Legacy notes:
 
 - `build_us` is one build run for each implementation/scenario pair.
 - `query_us` is one million negative probes.

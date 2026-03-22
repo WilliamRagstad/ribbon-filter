@@ -146,13 +146,15 @@ cargo test
 
 ### Benchmarks
 
-Run reproducible baseline benchmarks:
+Run Criterion benchmarks locally:
 
 ```sh
-cargo bench --bench ribbon
+cargo bench --bench main
 ```
 
-Committed baseline numbers are in `benches/benchmarks.md`.
+View Criterion HTML reports in `target/criterion/`.
+
+Benchmark regression checks also run in GitHub Actions (`.github/workflows/benchmark.yml`) and compare PR benchmark output against saved baseline data from `main`.
 
 ### Fuzzing
 
