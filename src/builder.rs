@@ -186,8 +186,8 @@ where
         let mut z = vec![0u64; m * stride_words];
         if matches!(self.params.mode, Mode::Homogeneous) {
             let mut rng = SplitMix64::new(seed ^ 0xD1B5_4A32_D192_ED03);
-            for i in 0..m {
-                if occupied[i] {
+            for (i, is_occupied) in occupied.iter().enumerate().take(m) {
+                if *is_occupied {
                     continue;
                 }
 
