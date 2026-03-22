@@ -372,40 +372,52 @@ fn homogeneous_build_succeeds_and_has_no_false_negatives() {
 }
 
 #[test]
-fn homogeneous_mode_has_reasonable_false_positive_rate() {
+fn homogeneous_mode_false_positive_rate_is_sane_across_seeds_and_sizes() {
     let hasher = DefaultBuildHasher::default();
-    let r = 10usize;
-    let n = 4000usize;
-    let params = Params::new(n * 4, 16, r, Mode::Homogeneous)
-        .expect("params valid")
-        .with_seed(5050)
-        .with_retry_policy(2, 0)
-        .expect("retry policy valid");
-    let builder = RibbonBuilder::new(params, hasher).expect("builder valid");
-    let keys: Vec<u64> = (0..n as u64).collect();
-    let filter = builder
-        .build(&keys)
-        .expect("homogeneous build should succeed");
+    let r = 8usize;
+    let seeds = [7u64, 77u64, 777u64];
+    let sizes = [2_000usize, 8_000usize];
+    let queries = 40_000usize;
 
-    let queries = 50_000usize;
-    let mut scratch = filter.new_scratch();
-    let mut fp = 0usize;
-    for q in 0..queries {
-        if filter.contains_in(&(10_000_000u64 + q as u64), &mut scratch) {
-            fp += 1;
+    for &seed in &seeds {
+        for &n in &sizes {
+            let params = Params::new(n * 4, 16, r, Mode::Homogeneous)
+                .expect("params valid")
+                .with_seed(seed)
+                .with_retry_policy(2, 0)
+                .expect("retry policy valid");
+            let builder = RibbonBuilder::new(params, hasher.clone()).expect("builder valid");
+            let keys: Vec<u64> = (0..n as u64).collect();
+            let filter = builder
+                .build(&keys)
+                .expect("homogeneous build should succeed");
+
+            let mut scratch = filter.new_scratch();
+            let mut fp = 0usize;
+            let query_start = 10_000_000u64 + (seed << 20) + n as u64;
+            for q in 0..queries {
+                if filter.contains_in(&(query_start + q as u64), &mut scratch) {
+                    fp += 1;
+                }
+            }
+
+            let observed = fp as f64 / queries as f64;
+            let expected = 2f64.powi(-(r as i32));
+
+            assert!(
+                observed > 0.0005,
+                "homogeneous fp unexpectedly near-zero seed={seed} n={n}: observed={observed}, expected~{expected}"
+            );
+            assert!(
+                observed < 0.05,
+                "homogeneous fp unexpectedly near-trivial-high seed={seed} n={n}: observed={observed}, expected~{expected}"
+            );
+            assert!(
+                observed >= expected / 8.0 && observed <= expected * 8.0,
+                "homogeneous fp far from expected envelope seed={seed} n={n}: observed={observed}, expected~{expected}"
+            );
         }
     }
-
-    let observed = fp as f64 / queries as f64;
-    let expected = 2f64.powi(-(r as i32));
-    assert!(
-        observed < 0.05,
-        "homogeneous fp rate too high: observed={observed}, expected~{expected}"
-    );
-    assert!(
-        observed <= expected * 8.0,
-        "homogeneous fp rate unexpectedly far from expected: observed={observed}, expected~{expected}"
-    );
 }
 
 #[test]
