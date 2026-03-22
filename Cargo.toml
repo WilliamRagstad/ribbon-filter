@@ -2,6 +2,7 @@
 name = "ribbon-filter"
 version = "0.2.0"
 edition = "2024"
+autobenches = false
 license = "MIT OR Apache-2.0"
 description = "Static approximate-membership Ribbon filter"
 repository = "https://github.com/WilliamRagstad/ribbon-filter"
@@ -10,9 +11,9 @@ categories = ["algorithms", "data-structures"]
 authors = ["William Rågstad"]
 
 [[bench]]
-name = "ribbon"
+name = "main"
 harness = false
-path = "benches/ribbon.rs"
+path = "benches/main.rs"
 
 [dependencies]
 bitvec = "1"
