@@ -5,7 +5,7 @@ mod bloomz;
 mod clubcard;
 mod common;
 mod fastbloom;
-mod ribbon_filter;
+mod ribbonfilter;
 
 use common::QUERY_COUNT;
 
@@ -19,7 +19,7 @@ fn main() {
     println!("impl,scenario,build_us,query_us,bits_per_key");
     for (n, w, r, seed) in scenarios {
         for row in [
-            ribbon_filter::measure(n, w, r, seed, QUERY_COUNT),
+            ribbonfilter::measure(n, w, r, seed, QUERY_COUNT),
             fastbloom::measure(n, QUERY_COUNT),
             bloomfilter::measure(n, QUERY_COUNT),
             bloomz::measure(n, QUERY_COUNT),
