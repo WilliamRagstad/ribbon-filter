@@ -1,37 +1,59 @@
-use std::time::Instant;
-
+use criterion::{BenchmarkId, Throughput, black_box};
 use fastbloom_rs::{FilterBuilder as FastBloomBuilder, Membership};
 
-use crate::common::{FP_RATE, ResultRow};
+use crate::common::{FP_RATE, Group, QUERY_COUNT, SCENARIOS};
 
-pub fn measure(n: usize, q: usize) -> ResultRow {
-    let keys: Vec<u64> = (0..n as u64).collect();
-    let mut builder = FastBloomBuilder::new(n as u64, FP_RATE);
+fn keys(n: usize) -> Vec<u64> {
+    (0..n as u64).collect()
+}
 
-    let build_start = Instant::now();
-    let mut filter = builder.build_bloom_filter();
-    for &key in &keys {
-        filter.add(&key.to_le_bytes());
+fn queries() -> Vec<[u8; 8]> {
+    (0..QUERY_COUNT as u64)
+        .map(|i| (10_000_000 + i).to_le_bytes())
+        .collect()
+}
+
+pub fn bench_build(group: &mut Group<'_>) {
+    for scenario in SCENARIOS {
+        let keys = keys(scenario.n);
+        let id = BenchmarkId::new("fastbloom-rs", scenario.id());
+        group.throughput(Throughput::Elements(scenario.n as u64));
+        group.bench_with_input(id, &keys, |b, keys| {
+            b.iter(|| {
+                let mut builder = FastBloomBuilder::new(keys.len() as u64, FP_RATE);
+                let mut filter = builder.build_bloom_filter();
+                for key in keys {
+                    filter.add(&key.to_le_bytes());
+                }
+                black_box(filter);
+            });
+        });
     }
-    let build_us = build_start.elapsed().as_micros();
+}
 
-    let cfg = filter.config();
-    let bits_per_key = (cfg.size as f64) / (n as f64);
+pub fn bench_query(group: &mut Group<'_>) {
+    let query_values = queries();
 
-    let query_start = Instant::now();
-    let mut hits = 0usize;
-    for i in 0..q as u64 {
-        if filter.contains(&(10_000_000 + i).to_le_bytes()) {
-            hits += 1;
+    for scenario in SCENARIOS {
+        let keys = keys(scenario.n);
+        let mut builder = FastBloomBuilder::new(keys.len() as u64, FP_RATE);
+        let mut filter = builder.build_bloom_filter();
+        for key in keys {
+            filter.add(&key.to_le_bytes());
         }
-    }
-    let query_us = query_start.elapsed().as_micros();
 
-    let _ = hits;
-    ResultRow {
-        name: "fastbloom-rs",
-        build_us,
-        query_us,
-        bits_per_key,
+        let id = BenchmarkId::new("fastbloom-rs", scenario.id());
+        group.throughput(Throughput::Elements(QUERY_COUNT as u64));
+        group.bench_with_input(id, &query_values, |b, values| {
+            b.iter(|| {
+                let mut hits = 0usize;
+                for value in values {
+                    if filter.contains(value) {
+                        hits += 1;
+                    }
+                }
+                black_box(hits);
+            });
+        });
     }
 }

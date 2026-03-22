@@ -1,43 +1,55 @@
-use std::time::Instant;
-
 use bloomz::BloomFilter as BloomzFilter;
+use criterion::{BenchmarkId, Throughput, black_box};
 
-use crate::common::{FP_RATE, ResultRow};
+use crate::common::{FP_RATE, Group, QUERY_COUNT, SCENARIOS};
 
-fn bloomz_bits(filter: &BloomzFilter) -> usize {
-    let bytes = filter.to_bytes();
-    let m_offset = bytes.len() - 12;
-    let mut m_arr = [0u8; 8];
-    m_arr.copy_from_slice(&bytes[m_offset..m_offset + 8]);
-    u64::from_le_bytes(m_arr) as usize
+fn keys(n: usize) -> Vec<u64> {
+    (0..n as u64).collect()
 }
 
-pub fn measure(n: usize, q: usize) -> ResultRow {
-    let keys: Vec<u64> = (0..n as u64).collect();
+fn queries() -> Vec<u64> {
+    (0..QUERY_COUNT as u64).map(|i| 10_000_000 + i).collect()
+}
 
-    let build_start = Instant::now();
-    let mut filter = BloomzFilter::new_for_capacity(n, FP_RATE);
-    for &key in &keys {
-        filter.insert(&key);
+pub fn bench_build(group: &mut Group<'_>) {
+    for scenario in SCENARIOS {
+        let keys = keys(scenario.n);
+        let id = BenchmarkId::new("bloomz", scenario.id());
+        group.throughput(Throughput::Elements(scenario.n as u64));
+        group.bench_with_input(id, &keys, |b, keys| {
+            b.iter(|| {
+                let mut filter = BloomzFilter::new_for_capacity(keys.len(), FP_RATE);
+                for key in keys {
+                    filter.insert(key);
+                }
+                black_box(filter);
+            });
+        });
     }
-    let build_us = build_start.elapsed().as_micros();
+}
 
-    let bits_per_key = (bloomz_bits(&filter) as f64) / (n as f64);
+pub fn bench_query(group: &mut Group<'_>) {
+    let query_values = queries();
 
-    let query_start = Instant::now();
-    let mut hits = 0usize;
-    for i in 0..q as u64 {
-        if filter.contains(&(10_000_000 + i)) {
-            hits += 1;
+    for scenario in SCENARIOS {
+        let keys = keys(scenario.n);
+        let mut filter = BloomzFilter::new_for_capacity(keys.len(), FP_RATE);
+        for key in keys {
+            filter.insert(&key);
         }
-    }
-    let query_us = query_start.elapsed().as_micros();
 
-    let _ = hits;
-    ResultRow {
-        name: "bloomz",
-        build_us,
-        query_us,
-        bits_per_key,
+        let id = BenchmarkId::new("bloomz", scenario.id());
+        group.throughput(Throughput::Elements(QUERY_COUNT as u64));
+        group.bench_with_input(id, &query_values, |b, values| {
+            b.iter(|| {
+                let mut hits = 0usize;
+                for value in values {
+                    if filter.contains(value) {
+                        hits += 1;
+                    }
+                }
+                black_box(hits);
+            });
+        });
     }
 }

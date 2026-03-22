@@ -1,11 +1,11 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::time::Instant;
 
 use clubcard::builder::{ApproximateRibbon, ClubcardBuilder, ExactRibbon};
-use clubcard::{ApproximateSizeOf, AsQuery, Equation, Filterable, Queryable};
+use clubcard::{AsQuery, Equation, Filterable, Membership, Queryable};
+use criterion::{BenchmarkId, Throughput, black_box};
 
-use crate::common::ResultRow;
+use crate::common::{Group, QUERY_COUNT, SCENARIOS};
 
 const CLUBCARD_WORDS: usize = 4;
 
@@ -80,47 +80,77 @@ impl Queryable<CLUBCARD_WORDS> for ClubcardItem {
     }
 }
 
-pub fn measure(n: usize, q: usize) -> ResultRow {
-    let keys: Vec<u64> = (0..n as u64).collect();
-    let query_values: Vec<u64> = (0..q as u64).map(|i| 10_000_000 + i).collect();
+fn positives(n: usize) -> Vec<u64> {
+    (0..n as u64).collect()
+}
 
-    let build_start = Instant::now();
+fn negatives() -> Vec<u64> {
+    (0..QUERY_COUNT as u64).map(|i| 10_000_000 + i).collect()
+}
 
+fn build_filter(
+    positive_values: &[u64],
+    negative_values: &[u64],
+) -> clubcard::Clubcard<CLUBCARD_WORDS, (), ()> {
     let mut builder = ClubcardBuilder::<CLUBCARD_WORDS, ClubcardItem>::new();
+
     let mut approx_builder = builder.new_approx_builder(&[]);
-    approx_builder.set_universe_size(n + q);
-    for &key in &keys {
+    approx_builder.set_universe_size(positive_values.len() + negative_values.len());
+    for &key in positive_values {
         approx_builder.insert(ClubcardItem::new(key, true));
     }
     builder.collect_approx_ribbons(vec![ApproximateRibbon::from(approx_builder)]);
 
     let mut exact_builder = builder.new_exact_builder(&[]);
-    for &key in &keys {
+    for &key in positive_values {
         exact_builder.insert(ClubcardItem::new(key, true));
     }
-    for &value in &query_values {
+    for &value in negative_values {
         exact_builder.insert(ClubcardItem::new(value, false));
     }
     builder.collect_exact_ribbons(vec![ExactRibbon::from(exact_builder)]);
 
-    let filter = builder.build::<ClubcardItem>((), ());
-    let build_us = build_start.elapsed().as_micros();
-    let bits_per_key = ((filter.approximate_size_of() * 8) as f64) / (n as f64);
+    builder.build::<ClubcardItem>((), ())
+}
 
-    let query_start = Instant::now();
-    let mut hits = 0usize;
-    for &value in &query_values {
-        if filter.unchecked_contains(&ClubcardItem::new(value, false)) {
-            hits += 1;
-        }
+pub fn bench_build(group: &mut Group<'_>) {
+    let negative_values = negatives();
+
+    for scenario in SCENARIOS {
+        let positive_values = positives(scenario.n);
+        let id = BenchmarkId::new("clubcard", scenario.id());
+        group.throughput(Throughput::Elements((scenario.n + QUERY_COUNT) as u64));
+        group.bench_with_input(id, &positive_values, |b, positives| {
+            b.iter(|| {
+                black_box(build_filter(positives, &negative_values));
+            });
+        });
     }
-    let query_us = query_start.elapsed().as_micros();
+}
 
-    let _ = hits;
-    ResultRow {
-        name: "clubcard",
-        build_us,
-        query_us,
-        bits_per_key,
+pub fn bench_query(group: &mut Group<'_>) {
+    let query_values = negatives();
+
+    for scenario in SCENARIOS {
+        let positive_values = positives(scenario.n);
+        let filter = build_filter(&positive_values, &query_values);
+        let id = BenchmarkId::new("clubcard", scenario.id());
+        group.throughput(Throughput::Elements(QUERY_COUNT as u64));
+
+        group.bench_with_input(id, &query_values, |b, values| {
+            b.iter(|| {
+                let mut hits = 0usize;
+                for &value in values {
+                    let member = matches!(
+                        filter.contains(&ClubcardItem::new(value, false)),
+                        Membership::Member
+                    );
+                    if member {
+                        hits += 1;
+                    }
+                }
+                black_box(hits);
+            });
+        });
     }
 }

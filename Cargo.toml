@@ -19,6 +19,7 @@ path = "benches/main.rs"
 bitvec = "1"
 
 [dev-dependencies]
+criterion = "0.5"
 bloomfilter = "3"
 bloomz = "0.1"
 clubcard = { version = "0.3", features = ["builder"] }
