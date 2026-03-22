@@ -3,7 +3,7 @@ use std::hash::BuildHasher;
 use crate::error::{BuildError, ConstructionFailure};
 use crate::filter::RibbonFilter;
 use crate::hashing::{
-    derive_attempt_seed, for_each_set_bit_u128_parts, standard_equation_w64, xor_words, SplitMix64,
+    SplitMix64, derive_attempt_seed, for_each_set_bit_u128_parts, standard_equation_w64, xor_words,
 };
 use crate::params::{Mode, Params};
 
