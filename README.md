@@ -1,5 +1,12 @@
 <div align="center">
   <h1>🎗️ Ribbon Filter</h1>
+  
+[![Crates.io](https://img.shields.io/crates/v/ribbon-filter.svg)](https://crates.io/crates/ribbon-filter)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/WilliamRagstad/ribbon-filter/ci.yml)](https://github.com/WilliamRagstad/ribbon-filter/actions)
+[![Documentation](https://docs.rs/ribbon-filter/badge.svg)](https://docs.rs/ribbon-filter)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE-Apache-2.0)
+
   <h4>
     A static, space-efficient Ribbon filter implementation for Rust
     <br>
