@@ -733,43 +733,9 @@ fn adversarial_regression_corpus_has_no_false_negatives() {
 }
 
 #[cfg(feature = "serde")]
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-struct SerdeBuildHasher;
-
-#[cfg(feature = "serde")]
-impl std::hash::BuildHasher for SerdeBuildHasher {
-    type Hasher = SerdeHasher;
-
-    fn build_hasher(&self) -> Self::Hasher {
-        SerdeHasher::default()
-    }
-}
-
-#[cfg(feature = "serde")]
-#[derive(Clone, Default)]
-struct SerdeHasher(u64);
-
-#[cfg(feature = "serde")]
-impl std::hash::Hasher for SerdeHasher {
-    fn finish(&self) -> u64 {
-        self.0
-    }
-
-    fn write(&mut self, bytes: &[u8]) {
-        let mut state = self.0 ^ 0x9E37_79B9_7F4A_7C15;
-        for &b in bytes {
-            state ^= b as u64;
-            state = state.wrapping_mul(0xD6E8_FEB8_6659_FD93);
-            state ^= state >> 33;
-        }
-        self.0 = state;
-    }
-}
-
-#[cfg(feature = "serde")]
 #[test]
 fn serde_roundtrip_preserves_membership_behavior() {
-    let hasher = SerdeBuildHasher;
+    let hasher = DefaultBuildHasher::default();
     let params = Params::new(3000, 16, 10, Mode::Standard)
         .expect("params should be valid")
         .with_seed(4242);
@@ -777,9 +743,12 @@ fn serde_roundtrip_preserves_membership_behavior() {
     let keys: Vec<u64> = (0..1000).collect();
     let filter = builder.build(&keys).expect("build should succeed");
 
-    let encoded = serde_json::to_string(&filter).expect("serialize should succeed");
-    let decoded: crate::RibbonFilter<SerdeBuildHasher> =
+    let repr = filter.to_repr();
+    let encoded = serde_json::to_string(&repr).expect("serialize should succeed");
+    let decoded_repr: crate::RibbonFilterRepr =
         serde_json::from_str(&encoded).expect("deserialize should succeed");
+    let decoded = crate::RibbonFilter::from_repr(decoded_repr, DefaultBuildHasher::default())
+        .expect("reconstructing filter should succeed");
 
     let mut scratch_original = filter.new_scratch();
     let mut scratch_decoded = decoded.new_scratch();
@@ -795,7 +764,7 @@ fn serde_roundtrip_preserves_membership_behavior() {
 #[cfg(feature = "serde")]
 #[test]
 fn serde_rejects_unknown_filter_version() {
-    let hasher = SerdeBuildHasher;
+    let hasher = DefaultBuildHasher::default();
     let params = Params::new(512, 16, 8, Mode::Standard)
         .expect("params should be valid")
         .with_seed(9);
@@ -803,18 +772,20 @@ fn serde_rejects_unknown_filter_version() {
     let keys: Vec<u64> = (0..100).collect();
     let filter = builder.build(&keys).expect("build should succeed");
 
-    let mut value = serde_json::to_value(&filter).expect("serialize should succeed");
+    let mut value = serde_json::to_value(filter.to_repr()).expect("serialize should succeed");
     value["version"] = serde_json::Value::from(99u64);
 
-    let err = serde_json::from_value::<crate::RibbonFilter<SerdeBuildHasher>>(value)
-        .expect_err("deserializing unknown version should fail");
+    let repr = serde_json::from_value::<crate::RibbonFilterRepr>(value)
+        .expect("deserializing repr should succeed");
+    let err = crate::RibbonFilter::from_repr(repr, DefaultBuildHasher::default())
+        .expect_err("reconstructing unknown version should fail");
     assert!(err.to_string().contains("unsupported RibbonFilter version"));
 }
 
 #[cfg(feature = "serde")]
 #[test]
-fn serde_rejects_incorrect_z_words_length() {
-    let hasher = SerdeBuildHasher;
+fn serde_rejects_incorrect_storage_word_length() {
+    let hasher = DefaultBuildHasher::default();
     let params = Params::new(512, 16, 8, Mode::Standard)
         .expect("params should be valid")
         .with_seed(10);
@@ -822,14 +793,15 @@ fn serde_rejects_incorrect_z_words_length() {
     let keys: Vec<u64> = (0..100).collect();
     let filter = builder.build(&keys).expect("build should succeed");
 
-    let mut value = serde_json::to_value(&filter).expect("serialize should succeed");
-    let z_words = value
-        .get_mut("z_words")
-        .and_then(serde_json::Value::as_array_mut)
-        .expect("z_words array should exist");
-    let _ = z_words.pop();
+    let mut repr = filter.to_repr();
+    let expected_words = repr.params.m * repr.params.fingerprint_words();
+    let wrong_words = expected_words - 1;
+    repr.z = bitvec::prelude::BitVec::<u64, bitvec::prelude::Lsb0>::from_vec(vec![0; wrong_words]);
 
-    let err = serde_json::from_value::<crate::RibbonFilter<SerdeBuildHasher>>(value)
-        .expect_err("deserializing invalid z_words should fail");
-    assert!(err.to_string().contains("invalid z_words length"));
+    let err = crate::RibbonFilter::from_repr(repr, DefaultBuildHasher::default())
+        .expect_err("reconstructing invalid storage should fail");
+    assert!(
+        err.to_string()
+            .contains("invalid RibbonFilter storage word length")
+    );
 }

@@ -113,6 +113,45 @@ impl fmt::Display for BuildError {
 
 impl std::error::Error for BuildError {}
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum FilterReprError {
+    UnsupportedVersion { found: u8, expected: u8 },
+    InvalidParams(ParamError),
+    StorageLengthOverflow,
+    InvalidStorageWords { found: usize, expected: usize },
+    InvalidStorageBits { found: usize, expected: usize },
+}
+
+impl fmt::Display for FilterReprError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FilterReprError::UnsupportedVersion { found, expected } => write!(
+                f,
+                "unsupported RibbonFilter version {found}, expected {expected}"
+            ),
+            FilterReprError::InvalidParams(err) => {
+                write!(
+                    f,
+                    "invalid parameters in RibbonFilter representation: {err}"
+                )
+            }
+            FilterReprError::StorageLengthOverflow => {
+                write!(f, "RibbonFilter representation storage length overflow")
+            }
+            FilterReprError::InvalidStorageWords { found, expected } => write!(
+                f,
+                "invalid RibbonFilter storage word length {found}; expected {expected}"
+            ),
+            FilterReprError::InvalidStorageBits { found, expected } => write!(
+                f,
+                "invalid RibbonFilter storage bit length {found}; expected {expected}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for FilterReprError {}
+
 #[cfg(test)]
 mod tests {
     use super::{BuildError, ConstructionFailure, ParamError};

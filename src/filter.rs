@@ -2,6 +2,8 @@ use bitvec::prelude::{BitVec, Lsb0};
 use std::hash::{BuildHasher, Hash};
 
 use crate::builder::Scratch;
+#[cfg(feature = "serde")]
+use crate::error::FilterReprError;
 use crate::hashing::{for_each_set_bit_u128_parts, standard_equation_w64, xor_words};
 use crate::params::Params;
 
@@ -10,11 +12,10 @@ const RIBBON_FILTER_FORMAT_VERSION: u8 = 1;
 
 #[cfg(feature = "serde")]
 #[derive(serde::Serialize, serde::Deserialize)]
-struct RibbonFilterRepr<S> {
-    version: u8,
-    params: Params,
-    build_hasher: S,
-    z_words: Vec<u64>,
+pub struct RibbonFilterRepr {
+    pub version: u8,
+    pub params: Params,
+    pub z: BitVec<u64, Lsb0>,
 }
 
 #[derive(Debug, Clone)]
@@ -82,62 +83,58 @@ where
         let end = start + self.stride_words;
         &self.z.as_raw_slice()[start..end]
     }
-}
 
-#[cfg(feature = "serde")]
-impl<S> serde::Serialize for RibbonFilter<S>
-where
-    S: BuildHasher + Clone + serde::Serialize,
-{
-    fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
-    where
-        Ser: serde::Serializer,
-    {
+    #[cfg(feature = "serde")]
+    pub fn to_repr(&self) -> RibbonFilterRepr {
         RibbonFilterRepr {
             version: RIBBON_FILTER_FORMAT_VERSION,
             params: self.params,
-            build_hasher: self.build_hasher.clone(),
-            z_words: self.z.as_raw_slice().to_vec(),
+            z: self.z.clone(),
         }
-        .serialize(serializer)
     }
-}
 
-#[cfg(feature = "serde")]
-impl<'de, S> serde::Deserialize<'de> for RibbonFilter<S>
-where
-    S: BuildHasher + Clone + serde::Deserialize<'de>,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let repr = RibbonFilterRepr::<S>::deserialize(deserializer)?;
-
+    #[cfg(feature = "serde")]
+    pub fn from_repr(repr: RibbonFilterRepr, build_hasher: S) -> Result<Self, FilterReprError> {
         if repr.version != RIBBON_FILTER_FORMAT_VERSION {
-            return Err(serde::de::Error::custom(format!(
-                "unsupported RibbonFilter version {}, expected {}",
-                repr.version, RIBBON_FILTER_FORMAT_VERSION
-            )));
+            return Err(FilterReprError::UnsupportedVersion {
+                found: repr.version,
+                expected: RIBBON_FILTER_FORMAT_VERSION,
+            });
         }
 
-        repr.params.validate().map_err(serde::de::Error::custom)?;
+        repr.params
+            .validate()
+            .map_err(FilterReprError::InvalidParams)?;
 
         let stride_words = repr.params.fingerprint_words();
-        let expected_len = repr
+        let expected_words = repr
             .params
             .m
             .checked_mul(stride_words)
-            .ok_or_else(|| serde::de::Error::custom("z_words length overflow"))?;
+            .ok_or(FilterReprError::StorageLengthOverflow)?;
+        let expected_bits = expected_words
+            .checked_mul(64)
+            .ok_or(FilterReprError::StorageLengthOverflow)?;
 
-        if repr.z_words.len() != expected_len {
-            return Err(serde::de::Error::custom(format!(
-                "invalid z_words length {}; expected {}",
-                repr.z_words.len(),
-                expected_len
-            )));
+        if repr.z.as_raw_slice().len() != expected_words {
+            return Err(FilterReprError::InvalidStorageWords {
+                found: repr.z.as_raw_slice().len(),
+                expected: expected_words,
+            });
         }
 
-        Ok(Self::new(repr.params, repr.build_hasher, repr.z_words))
+        if repr.z.len() != expected_bits {
+            return Err(FilterReprError::InvalidStorageBits {
+                found: repr.z.len(),
+                expected: expected_bits,
+            });
+        }
+
+        Ok(Self {
+            params: repr.params,
+            build_hasher,
+            stride_words,
+            z: repr.z,
+        })
     }
 }

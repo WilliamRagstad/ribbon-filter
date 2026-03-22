@@ -123,7 +123,7 @@ The crate currently ships a minimal default build (no optional flags enabled) an
 | `rayon` | Planned | Parallel construction and/or batched query helpers for multi-core workloads. |
 | `no_std` | Planned | Support for `#![no_std]` environments without heap allocation. |
 
-When `serde` is enabled, `RibbonFilter<S>` serialization requires hasher type `S` to implement serde serialize/deserialize traits.
+When `serde` is enabled, serialize/deserialize `RibbonFilterRepr` and reconstruct with `RibbonFilter::from_repr(repr, hasher)`.
 
 ## Features
 
