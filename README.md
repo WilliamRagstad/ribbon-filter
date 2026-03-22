@@ -121,6 +121,7 @@ The crate currently ships a minimal default build (no optional flags enabled) an
 |---|---|---|
 | `serde` | Planned | Serialization support for persisted filters and transport between processes. |
 | `rayon` | Planned | Parallel construction and/or batched query helpers for multi-core workloads. |
+| `no_std` | Planned | Support for `#![no_std]` environments without heap allocation. |
 
 ## Features
 
