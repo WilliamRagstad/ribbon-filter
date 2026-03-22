@@ -731,3 +731,77 @@ fn adversarial_regression_corpus_has_no_false_negatives() {
         }
     }
 }
+
+#[cfg(feature = "serde")]
+#[test]
+fn serde_roundtrip_preserves_membership_behavior() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(3000, 16, 10, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(4242);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should be valid");
+    let keys: Vec<u64> = (0..1000).collect();
+    let filter = builder.build(&keys).expect("build should succeed");
+
+    let repr = filter.to_repr();
+    let encoded = serde_json::to_string(&repr).expect("serialize should succeed");
+    let decoded_repr: crate::RibbonFilterRepr =
+        serde_json::from_str(&encoded).expect("deserialize should succeed");
+    let decoded = crate::RibbonFilter::from_repr(decoded_repr, DefaultBuildHasher::default())
+        .expect("reconstructing filter should succeed");
+
+    let mut scratch_original = filter.new_scratch();
+    let mut scratch_decoded = decoded.new_scratch();
+    for probe in 0..1200u64 {
+        assert_eq!(
+            filter.contains_in(&probe, &mut scratch_original),
+            decoded.contains_in(&probe, &mut scratch_decoded),
+            "membership mismatch for probe {probe}"
+        );
+    }
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn serde_rejects_unknown_filter_version() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(512, 16, 8, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(9);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should be valid");
+    let keys: Vec<u64> = (0..100).collect();
+    let filter = builder.build(&keys).expect("build should succeed");
+
+    let mut value = serde_json::to_value(filter.to_repr()).expect("serialize should succeed");
+    value["version"] = serde_json::Value::from(99u64);
+
+    let repr = serde_json::from_value::<crate::RibbonFilterRepr>(value)
+        .expect("deserializing repr should succeed");
+    let err = crate::RibbonFilter::from_repr(repr, DefaultBuildHasher::default())
+        .expect_err("reconstructing unknown version should fail");
+    assert!(err.to_string().contains("unsupported RibbonFilter version"));
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn serde_rejects_incorrect_storage_word_length() {
+    let hasher = DefaultBuildHasher::default();
+    let params = Params::new(512, 16, 8, Mode::Standard)
+        .expect("params should be valid")
+        .with_seed(10);
+    let builder = RibbonBuilder::new(params, hasher).expect("builder should be valid");
+    let keys: Vec<u64> = (0..100).collect();
+    let filter = builder.build(&keys).expect("build should succeed");
+
+    let mut repr = filter.to_repr();
+    let expected_words = repr.params.m * repr.params.fingerprint_words();
+    let wrong_words = expected_words - 1;
+    repr.z = bitvec::prelude::BitVec::<u64, bitvec::prelude::Lsb0>::from_vec(vec![0; wrong_words]);
+
+    let err = crate::RibbonFilter::from_repr(repr, DefaultBuildHasher::default())
+        .expect_err("reconstructing invalid storage should fail");
+    assert!(
+        err.to_string()
+            .contains("invalid RibbonFilter storage word length")
+    );
+}

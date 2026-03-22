@@ -2,8 +2,21 @@ use bitvec::prelude::{BitVec, Lsb0};
 use std::hash::{BuildHasher, Hash};
 
 use crate::builder::Scratch;
+#[cfg(feature = "serde")]
+use crate::error::FilterReprError;
 use crate::hashing::{for_each_set_bit_u128_parts, standard_equation_w64, xor_words};
 use crate::params::Params;
+
+#[cfg(feature = "serde")]
+const RIBBON_FILTER_FORMAT_VERSION: u8 = 1;
+
+#[cfg(feature = "serde")]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct RibbonFilterRepr {
+    pub version: u8,
+    pub params: Params,
+    pub z: BitVec<u64, Lsb0>,
+}
 
 #[derive(Debug, Clone)]
 pub struct RibbonFilter<S> {
@@ -69,5 +82,59 @@ where
         let start = row * self.stride_words;
         let end = start + self.stride_words;
         &self.z.as_raw_slice()[start..end]
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_repr(&self) -> RibbonFilterRepr {
+        RibbonFilterRepr {
+            version: RIBBON_FILTER_FORMAT_VERSION,
+            params: self.params,
+            z: self.z.clone(),
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn from_repr(repr: RibbonFilterRepr, build_hasher: S) -> Result<Self, FilterReprError> {
+        if repr.version != RIBBON_FILTER_FORMAT_VERSION {
+            return Err(FilterReprError::UnsupportedVersion {
+                found: repr.version,
+                expected: RIBBON_FILTER_FORMAT_VERSION,
+            });
+        }
+
+        repr.params
+            .validate()
+            .map_err(FilterReprError::InvalidParams)?;
+
+        let stride_words = repr.params.fingerprint_words();
+        let expected_words = repr
+            .params
+            .m
+            .checked_mul(stride_words)
+            .ok_or(FilterReprError::StorageLengthOverflow)?;
+        let expected_bits = expected_words
+            .checked_mul(64)
+            .ok_or(FilterReprError::StorageLengthOverflow)?;
+
+        if repr.z.as_raw_slice().len() != expected_words {
+            return Err(FilterReprError::InvalidStorageWords {
+                found: repr.z.as_raw_slice().len(),
+                expected: expected_words,
+            });
+        }
+
+        if repr.z.len() != expected_bits {
+            return Err(FilterReprError::InvalidStorageBits {
+                found: repr.z.len(),
+                expected: expected_bits,
+            });
+        }
+
+        Ok(Self {
+            params: repr.params,
+            build_hasher,
+            stride_words,
+            z: repr.z,
+        })
     }
 }

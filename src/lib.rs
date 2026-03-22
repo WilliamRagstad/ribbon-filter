@@ -32,8 +32,10 @@ pub mod hashing;
 pub mod params;
 
 pub use builder::{RibbonBuilder, Scratch};
-pub use error::{BuildError, ConstructionFailure, ParamError};
+pub use error::{BuildError, ConstructionFailure, FilterReprError, ParamError};
 pub use filter::RibbonFilter;
+#[cfg(feature = "serde")]
+pub use filter::RibbonFilterRepr;
 pub use params::{Mode, Params};
 
 #[cfg(test)]

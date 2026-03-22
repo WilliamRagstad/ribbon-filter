@@ -113,6 +113,18 @@ Helper constructors:
 
 - `Mode::Homogeneous`: Uses zero right-hand-side constraints, construction path is simplified for this mode, retained keys still satisfy no-false-negative behavior in tests.
 
+## Feature Flags
+
+The crate currently ships a minimal default build (no optional flags enabled) and treats additional capabilities as opt-in.
+
+| Feature flag | Status | Purpose |
+|---|---|---|
+| `serde` | Current | Serialization support for persisted filters and transport between processes. |
+| `rayon` | Planned | Parallel construction and/or batched query helpers for multi-core workloads. |
+| `no_std` | Planned | Support for `#![no_std]` environments without heap allocation. |
+
+When `serde` is enabled, serialize/deserialize `RibbonFilterRepr` and reconstruct with `RibbonFilter::from_repr(repr, hasher)`.
+
 ## Features
 
 - [x] Standard mode construction and queries
