@@ -44,7 +44,7 @@ Add the crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ribbon-filter = "0.1"
+ribbon-filter = "0.2"
 ```
 
 Then build and query a filter:
