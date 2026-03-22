@@ -40,14 +40,7 @@ Paper: [Ribbon filter: Practically Smaller Than Xor](https://arxiv.org/pdf/2103.
 
 ## Usage
 
-Add the crate to your `Cargo.toml`:
-
-```toml
-[dependencies]
-ribbon-filter = "0.1"
-```
-
-Then build and query a filter:
+First build a filter from a given key-set, then query it for membership tests:
 
 ```rust
 use std::collections::hash_map::DefaultHasher;
