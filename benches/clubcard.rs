@@ -88,7 +88,7 @@ fn negatives() -> Vec<u64> {
     (0..QUERY_COUNT as u64).map(|i| 10_000_000 + i).collect()
 }
 
-fn build_filter(
+fn make_filter(
     positive_values: &[u64],
     negative_values: &[u64],
 ) -> clubcard::Clubcard<CLUBCARD_WORDS, (), ()> {
@@ -122,7 +122,7 @@ pub fn bench_build(group: &mut Group<'_>) {
         group.throughput(Throughput::Elements((scenario.n + QUERY_COUNT) as u64));
         group.bench_with_input(id, &positive_values, |b, positives| {
             b.iter(|| {
-                black_box(build_filter(positives, &negative_values));
+                black_box(make_filter(positives, &negative_values));
             });
         });
     }
@@ -133,7 +133,7 @@ pub fn bench_query(group: &mut Group<'_>) {
 
     for scenario in SCENARIOS {
         let positive_values = positives(scenario.n);
-        let filter = build_filter(&positive_values, &query_values);
+        let filter = make_filter(&positive_values, &query_values);
         let id = BenchmarkId::new("clubcard", scenario.id());
         group.throughput(Throughput::Elements(QUERY_COUNT as u64));
 

@@ -1,5 +1,5 @@
 use criterion::{BenchmarkId, Throughput, black_box};
-use fastbloom_rs::{FilterBuilder as FastBloomBuilder, Membership};
+use fastbloom_rs::{BloomFilter as FastBloomFilter, FilterBuilder as FastBloomBuilder, Membership};
 
 use crate::common::{FP_RATE, Group, QUERY_COUNT, SCENARIOS};
 
@@ -13,6 +13,15 @@ fn queries() -> Vec<[u8; 8]> {
         .collect()
 }
 
+fn make_filter(keys: &[u64]) -> FastBloomFilter {
+    let mut builder = FastBloomBuilder::new(keys.len() as u64, FP_RATE);
+    let mut filter = builder.build_bloom_filter();
+    for key in keys {
+        filter.add(&key.to_le_bytes());
+    }
+    filter
+}
+
 pub fn bench_build(group: &mut Group<'_>) {
     for scenario in SCENARIOS {
         let keys = keys(scenario.n);
@@ -20,12 +29,7 @@ pub fn bench_build(group: &mut Group<'_>) {
         group.throughput(Throughput::Elements(scenario.n as u64));
         group.bench_with_input(id, &keys, |b, keys| {
             b.iter(|| {
-                let mut builder = FastBloomBuilder::new(keys.len() as u64, FP_RATE);
-                let mut filter = builder.build_bloom_filter();
-                for key in keys {
-                    filter.add(&key.to_le_bytes());
-                }
-                black_box(filter);
+                black_box(make_filter(keys));
             });
         });
     }
@@ -36,11 +40,7 @@ pub fn bench_query(group: &mut Group<'_>) {
 
     for scenario in SCENARIOS {
         let keys = keys(scenario.n);
-        let mut builder = FastBloomBuilder::new(keys.len() as u64, FP_RATE);
-        let mut filter = builder.build_bloom_filter();
-        for key in keys {
-            filter.add(&key.to_le_bytes());
-        }
+        let filter = make_filter(&keys);
 
         let id = BenchmarkId::new("fastbloom-rs", scenario.id());
         group.throughput(Throughput::Elements(QUERY_COUNT as u64));
