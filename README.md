@@ -119,11 +119,8 @@ The crate currently ships a minimal default build (no optional flags enabled) an
 
 | Feature flag | Status | Purpose |
 |---|---|---|
-| *(default build)* | Current | Core builder/query pipeline with no optional dependency surface. |
-| `rayon` | Planned | Parallel construction and/or batched query helpers for multi-core workloads. |
 | `serde` | Planned | Serialization support for persisted filters and transport between processes. |
-| `fast-ahash` | Planned | Optional high-throughput hashing backend for faster non-cryptographic key hashing. |
-| `fast-xxh3` | Planned | Optional XXH3-based hashing backend for high-throughput key distributions. |
+| `rayon` | Planned | Parallel construction and/or batched query helpers for multi-core workloads. |
 
 ## Features
 
